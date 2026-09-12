@@ -3,6 +3,8 @@
 **Version:** 1.0  
 **Status:** Architecture Finalized, Pre-Build  
 
+> **⚠️ Historical document.** This PRD predates the actual build and describes the original pre-microservices design goals (e.g. it lists "no user accounts", "no multi-user/multi-session" as explicit non-goals — both were later built). Kept for historical context on the product's original scope; for the current architecture see [ARCHITECTURE.md](ARCHITECTURE.md), and for current UI/feature scope see [UI_REQUIREMENTS.md](UI_REQUIREMENTS.md) and [PHASE_8_PLAN.md](PHASE_8_PLAN.md).
+
 ---
 
 ## 1. Overview

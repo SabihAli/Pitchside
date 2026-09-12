@@ -1,7 +1,7 @@
 # Phase 8 — Pitchside Next.js frontend (+ companion APIs)
 
 **Status:** Plan locked 2026-07-16 (clarifying Q&A answered)  
-**Design source of truth:** `pitchai-analyst.html`, `auth-reference.html`, `theme.css`  
+**Design source of truth:** `docs/design-reference/pitchai-analyst.html`, `docs/design-reference/auth-reference.html`, `docs/design-reference/theme.css`  
 **Product brand:** Pitchside  
 
 This phase implements the full control-room UI as a **single-page Next.js app** (App Router), with auth and other overlays as **in-app modals** (not separate HTML pages). Companion backend endpoints required by the UI ship in the same phase.
@@ -15,7 +15,7 @@ This phase implements the full control-room UI as a **single-page Next.js app** 
 | 1 | Scope | **Full mock** parity in one pass |
 | 2 | Anon | Keep anon Kickoff + 10-message cap + login prompt at limit |
 | 3 | Live Events | **Real data** (MCP / tools-backed) |
-| 4 | Help | Real minimal page; `theme.css` tokens |
+| 4 | Help | Real minimal page; `docs/design-reference/theme.css` tokens |
 | 5 | Settings keys | **UI + backend** (`GET/PUT /settings/api-keys`) |
 | 6 | Routing | Soft routes (App Router + client nav) |
 | 7 | Deep links | **Yes** — bookmarkable views (recommendation below) |
@@ -25,7 +25,7 @@ This phase implements the full control-room UI as a **single-page Next.js app** 
 | 11 | Ball Knowledge | **User-account RAG corpus** — not project/league scoped |
 | 12 | Hosting | Next.js as its **own Docker/K8s service**; browser → gateway API |
 | 13 | Router | App Router |
-| 14 | CSS | Tailwind + ported `theme.css` tokens |
+| 14 | CSS | Tailwind + ported `docs/design-reference/theme.css` tokens |
 | 15 | Frontend service | **Yes** — `web` (or `frontend`) microservice |
 | 16 | Legacy UI | Keep `frontend/` until Next is green, then remove |
 | 17 | Deploy | Local Docker + Kubernetes manifests |
@@ -86,7 +86,7 @@ User
 
 - **SPA shell:** left sidebar always mounted; center view swaps; Match Status only on chat routes.  
 - **Tokens:** access in `sessionStorage`; refresh in `localStorage` (per prior lock).  
-- **Design:** port `theme.css` CSS variables into Tailwind theme; dark Pitchside look from mock.
+- **Design:** port `docs/design-reference/theme.css` CSS variables into Tailwind theme; dark Pitchside look from mock.
 
 ---
 
@@ -95,13 +95,13 @@ User
 ### A — Scaffold & shell
 1. Create Next.js App Router app as service (`services/web` or `apps/web` — prefer **`services/web`** to match monorepo).  
 2. Dockerfile + compose service + k8s manifests.  
-3. Tailwind + `theme.css` tokens; fonts (Montserrat / Merriweather / Source Code Pro).  
+3. Tailwind + `docs/design-reference/theme.css` tokens; fonts (Montserrat / Merriweather / Source Code Pro).  
 4. App shell: sidebar, Kickoff, search, Match History, nav, collapsible rail.  
 5. Soft routing for views; hide Settings when logged out.  
 6. Pitch canvas ambient animation (client component); `prefers-reduced-motion` off by default (respect OS if easy).
 
 ### B — Auth (modal SPA)
-1. Sign up / Sign in modal over blurred chat (from `auth-reference.html`).  
+1. Sign up / Sign in modal over blurred chat (from `docs/design-reference/auth-reference.html`).  
 2. Google OAuth (popup or redirect back into SPA).  
 3. Email/password register (`first_name`) + login.  
 4. **2FA** setup + verify flows for email/password users.  

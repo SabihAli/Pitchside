@@ -3,7 +3,7 @@
 **Status:** Living document — updated as each backend phase lands.  
 **Purpose:** Collect every UI-facing requirement discovered during Phases 0–7 so Phase 8 can implement the full frontend in one pass without re-reading ADRs, plans, or service code.
 
-**Related:** Microservices architecture plan (`.cursor/plans/`) · [ADR-001](adr/ADR-001-service-boundaries.md) · [ADR-002](adr/ADR-002-auth-and-gateway.md) · [football_rag_prd.md](football_rag_prd.md) · `pitchai-analyst.html` (design reference) · Next.js app (Phase 8, replaces legacy `frontend/`)
+**Related:** Microservices architecture plan (`.cursor/plans/`) · [ADR-001](adr/ADR-001-service-boundaries.md) · [ADR-002](adr/ADR-002-auth-and-gateway.md) · [football_rag_prd.md](football_rag_prd.md) · `docs/design-reference/pitchai-analyst.html` (design reference) · Next.js app (Phase 8, replaces legacy `frontend/`)
 
 ---
 
@@ -12,14 +12,14 @@
 | Area | Decision |
 |------|----------|
 | **Framework** | Next.js — scrap legacy `frontend/` |
-| **Brand** | **Pitchside** (from `pitchai-analyst.html`) |
-| **Design reference** | `pitchai-analyst.html` — evolve via 21st.dev Magic MCP |
+| **Brand** | **Pitchside** (from `docs/design-reference/pitchai-analyst.html`) |
+| **Design reference** | `docs/design-reference/pitchai-analyst.html` — evolve via 21st.dev Magic MCP |
 | **Layout** | Control room (Option B) + search field in left panel (Option A) |
 | **Left panel** | Football-themed copy: **Kickoff** (create chat), Match History (with relative time labels: `12h` / `10m` / `2d`), Your Leagues, Ball Knowledge, Live Events — **not** "New Chat" |
-| **Pitch canvas** | Ambient canvas animation: faint player nodes + ball-passing loop behind chat (`#pitch-anim` in `pitchai-analyst.html`). Prefer `prefers-reduced-motion` off in Next.js production build. |
+| **Pitch canvas** | Ambient canvas animation: faint player nodes + ball-passing loop behind chat (`#pitch-anim` in `docs/design-reference/pitchai-analyst.html`). Prefer `prefers-reduced-motion` off in Next.js production build. |
 | **Left panel search** | `Search matches…` filter above match history list |
 | **Right panel title** | **Match Status** (pipeline / WS stage cards) |
-| **Auth UI** | Reference: `auth-reference.html` (matches `auth ss.png` + `theme.css` dark tokens). Register card with **Google** OAuth only, **first name**, email/password, primary CTA. Modal over blurred/darkened chat. Empty-field warnings use themed tooltips (`--destructive` / `--popover`), not browser defaults. |
+| **Auth UI** | Reference: `docs/design-reference/auth-reference.html` (dark `docs/design-reference/theme.css` tokens). Register card with **Google** OAuth only, **first name**, email/password, primary CTA. Modal over blurred/darkened chat. Empty-field warnings use themed tooltips (`--destructive` / `--popover`), not browser defaults. |
 | **Anon users** | `POST /chats` without JWT; merge on login via `POST /chats/merge` (to build) |
 | **Sidebar auth CTA** | When **not logged in**, footer shows **Sign up** (opens auth modal). When logged in, same slot shows **Logout**. Auth modal toggles Sign up ↔ Sign in (no first name on Sign in; Google OAuth on both). |
 | **Leagues screen** | Sidebar stays; main replaces chat with Projects-style layout (title, sort, New league, search, cards). Maps to `GET/POST /projects`. |
@@ -76,8 +76,8 @@ Inherited from the existing monolith UI and PRD; Phase 8 should preserve or evol
 
 | Area | Requirement |
 |------|-------------|
-| **Visual style** | Pitchside — dark pitch palette, liquid-glass input, pitch-pattern canvas (`pitchai-analyst.html`) |
-| **Typography** | From `theme.css`: Montserrat (sans / body), Merriweather (serif / headlines), Source Code Pro (mono / labels); `letter-spacing: 0em` |
+| **Visual style** | Pitchside — dark pitch palette, liquid-glass input, pitch-pattern canvas (`docs/design-reference/pitchai-analyst.html`) |
+| **Typography** | From `docs/design-reference/theme.css`: Montserrat (sans / body), Merriweather (serif / headlines), Source Code Pro (mono / labels); `letter-spacing: 0em` |
 | **Layout** | Three-column: **sidebar** (nav + search + match history) · **main chat** · **Match Status** panel |
 | **Responsive** | Collapsible sidebar via mobile menu button; chat remains primary on small screens |
 | **Message bubbles** | Distinct user vs assistant styling; assistant messages support streaming partial text |
@@ -281,7 +281,7 @@ Do **not** use `GET /projects/{id}/knowledge-stats` for this screen. Project fil
 
 ## Settings / API keys backend
 
-Settings UI lets a self-hosted operator enter third-party keys used by LLM, tools, and OAuth. Keys today live only in repo-root `.env` (see `.env.example`). **There is no settings API yet** — Phase 8 UI mock exists in `pitchai-analyst.html`; backend must be added.
+Settings UI lets a self-hosted operator enter third-party keys used by LLM, tools, and OAuth. Keys today live only in repo-root `.env` (see `.env.example`). **There is no settings API yet** — Phase 8 UI mock exists in `docs/design-reference/pitchai-analyst.html`; backend must be added.
 
 ### Keys exposed in Settings
 
@@ -483,7 +483,7 @@ Budget = **full next-turn LLM prompt**: snapshot + hot messages + current query 
 | 2026-07-14 | 5 | Phase 5 implemented: ingestion service (async jobs), project upload auto-trigger, `error_message` on files, `/ingest/*` internal-only |
 | 2026-07-14 | 6 | Phase 6 implemented: RAG orchestrator (LangGraph), chat inline RAG on message POST, WS `/ws/pipeline`, observability `GET /traces/{id}`, monolith `/api/chat` → 501 |
 | 2026-07-15 | 7 | Phase 7 implemented: tools service (`:8088`), web search opt-in, football MCP, PDF export, TOOL pipeline path, `tool_notice` / `tool_calls` tracing, `GET /tools` on gateway |
-| 2026-07-16 | 8 | Phase 8 design locked: Next.js + Pitchside (`pitchai-analyst.html`), Control room + search, Match Status panel, sessionStorage auth, web search pill on disclaimer row |
+| 2026-07-16 | 8 | Phase 8 design locked: Next.js + Pitchside (`docs/design-reference/pitchai-analyst.html`), Control room + search, Match Status panel, sessionStorage auth, web search pill on disclaimer row |
 | 2026-07-16 | 8 | Auth modal + first_name; Login↔Logout sidebar CTA; Leagues screen; Ball Knowledge screen + documented `knowledge-stats` backend gap |
 | 2026-07-16 | 8 | Settings screen: API key fields; documented `GET/PUT /settings/api-keys` + `.env` sync |
 | 2026-07-16 | 8 | Phase 8 plan locked ([PHASE_8_PLAN.md](PHASE_8_PLAN.md)): SPA Next.js `web` service; Ball Knowledge = user RAG (not projects); full mock + companion APIs |

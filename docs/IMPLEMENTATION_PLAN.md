@@ -1,5 +1,7 @@
 # IMPLEMENTATION_PLAN: Snapshot Context Maintenance
 
+> **⚠️ Historical / archived document.** Targets the dead `src/` monolith (see [CODEBASE.md](../CODEBASE.md)) and does not describe the current `services/` architecture. Kept for historical design rationale only.
+
 **Feature:** Enhancement 1 — Snapshot Context Maintenance (`ENHANCEMENTS.md` L18–122)
 **Target Codebase:** Pitchside `src/`
 **Methodology:** Test-Driven Development (TDD) — tests written before implementation for each unit

@@ -1,5 +1,7 @@
 # Pitchside Enhancements
 
+> **⚠️ Historical / archived document.** These enhancements targeted the original `src/` monolith, which is now dead code superseded by the `services/` microservice rebuild (see [CODEBASE.md](../CODEBASE.md)). Several of these designs (multi-format ingestion, football relevance guard, smart chunking) were re-implemented in `services/ingestion` in the new architecture; others (Groq provider) live in `services/llm_gateway`. Kept for historical design rationale only — not an accurate description of current code.
+
 This document details the architecture, design decisions, and implementation specifications for five planned enhancements to the Pitchside RAG pipeline. Each section is self-contained and cross-references the relevant components in `ARCHITECTURE.md` where applicable.
 
 ---

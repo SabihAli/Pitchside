@@ -1,5 +1,7 @@
 # Pitchside — Project Plan
 
+> **⚠️ Historical / stale document.** This was the original monolith-era phase plan. Its checkbox state no longer reflects reality — several phases marked unchecked here (retrieval, LLM components, orchestration, API layer) are fully implemented in the current `services/` microservice architecture, while others were superseded entirely by the rebuild. Kept for historical context on the original TDD phase breakdown. For current, accurate status see [CODEBASE.md](../CODEBASE.md) at the repo root and [PHASE_8_PLAN.md](PHASE_8_PLAN.md) for the latest completed phase.
+
 This document breaks down the development of Pitchside into distinct, independently testable phases following **Test-Driven Development (TDD)** principles. 
 
 For each feature, the development loop will be:

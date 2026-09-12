@@ -20,7 +20,10 @@ import {
 import { formatRelativeTime } from "@/lib/time";
 import {
   Books,
+  CaretDown,
+  ClockCounterClockwise,
   Gear,
+  MagnifyingGlass,
   Question,
   SidebarSimple,
   SignOut,
@@ -54,6 +57,7 @@ export function AppShell({ children, showMatchStatus = false }: AppShellProps) {
   const searchParams = useSearchParams();
   const { loggedIn, ready, user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState<ChatListItem[]>([]);
   const [kickoffPending, setKickoffPending] = useState(false);
 
@@ -140,23 +144,24 @@ export function AppShell({ children, showMatchStatus = false }: AppShellProps) {
   const shell = (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
       <aside
-        className={`flex h-full shrink-0 flex-col border-r border-sidebar-border bg-sidebar/90 p-4 transition-[width] duration-200 ${
-          collapsed ? "w-[88px]" : "w-[280px]"
+        className={`flex h-full shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 transition-[width] duration-200 ${
+          collapsed ? "sidebar-collapsed w-[88px]" : "w-[280px]"
         }`}
       >
-        <div className="mb-6 flex items-center justify-between gap-2">
-          {!collapsed && (
-            <Link href="/" className="font-serif text-2xl font-bold text-primary">
-              Pitchside
-            </Link>
-          )}
+        <div className="sidebar-brand-row mb-6 flex items-center justify-between gap-2">
+          <Link
+            href="/"
+            className="sidebar-text font-serif text-2xl font-bold text-primary"
+          >
+            Pitchside
+          </Link>
           <button
             type="button"
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-sidebar-border text-muted-foreground hover:border-ring hover:text-foreground"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             onClick={() => setCollapsed((v) => !v)}
           >
-            <SidebarSimple className="text-[18px]" size={18} weight="light" />
+            <SidebarSimple size={18} weight="light" />
           </button>
         </div>
 
@@ -164,34 +169,53 @@ export function AppShell({ children, showMatchStatus = false }: AppShellProps) {
           type="button"
           onClick={onKickoff}
           disabled={kickoffPending}
-          className="mb-6 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-70"
+          className="sidebar-cta kickoff-btn mb-6 flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 font-semibold disabled:opacity-70"
         >
           <SoccerBall size={22} weight="light" />
-          {!collapsed && <span>{kickoffPending ? "Starting…" : "Kickoff"}</span>}
+          <span className="sidebar-text">
+            {kickoffPending ? "Starting…" : "Kickoff"}
+          </span>
         </button>
 
-        <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
-          {!collapsed && (
-            <p className="mb-2 font-mono text-xs uppercase text-muted-foreground">
-              Match History
-            </p>
-          )}
-          {!collapsed && history.length === 0 && (
-            <p className="mb-4 px-2 text-sm text-muted-foreground">
-              No matches yet — hit Kickoff to start.
-            </p>
-          )}
-          {!collapsed &&
-            history.map((item) => {
+        <div className="sidebar-search mb-3 px-1">
+          <div className="sidebar-search-field">
+            <MagnifyingGlass className="sidebar-search-icon" size={16} weight="light" />
+            <input
+              className="sidebar-search-input"
+              type="text"
+              placeholder="Search matches…"
+              aria-label="Search matches"
+            />
+          </div>
+        </div>
+
+        <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto scrollbar-hide">
+          <button
+            type="button"
+            className="nav-item"
+            aria-expanded={historyOpen}
+            onClick={() => setHistoryOpen((v) => !v)}
+          >
+            <ClockCounterClockwise className="nav-item-icon" size={20} weight="light" />
+            <span className="sidebar-text">Match History</span>
+            <CaretDown className="sidebar-text nav-item-chevron" size={16} weight="light" />
+          </button>
+          <div className={`sidebar-history-items ${historyOpen ? "is-open" : ""}`}>
+            {history.length === 0 && (
+              <p className="mb-4 px-3 text-sm text-muted-foreground">
+                No matches yet — hit Kickoff to start.
+              </p>
+            )}
+            {history.map((item) => {
               const active = pathname === `/chat/${item.id}`;
               return (
                 <Link
                   key={item.id}
                   href={`/chat/${item.id}`}
-                  className={`mb-1 flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  className={`mb-1 flex items-center justify-between gap-2 rounded-[3px] px-3 py-2 text-sm transition-colors ${
                     active
-                      ? "bg-sidebar-accent/30 text-primary"
-                      : "text-sidebar-foreground hover:bg-muted"
+                      ? "bg-primary/16 text-primary"
+                      : "text-sidebar-foreground hover:bg-muted/50"
                   }`}
                 >
                   <span className="truncate">{item.title || "Untitled"}</span>
@@ -201,6 +225,7 @@ export function AppShell({ children, showMatchStatus = false }: AppShellProps) {
                 </Link>
               );
             })}
+          </div>
 
           {nav
             .filter((item) => !("authOnly" in item && item.authOnly) || loggedIn)
@@ -211,11 +236,7 @@ export function AppShell({ children, showMatchStatus = false }: AppShellProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 font-mono text-sm transition-colors ${
-                    active
-                      ? "bg-sidebar-accent/30 text-primary"
-                      : "text-sidebar-foreground hover:bg-muted"
-                  } ${collapsed ? "justify-center" : ""}`}
+                  className={`nav-item ${active ? "is-selected" : ""}`}
                   onClick={(e) => {
                     if ("authRequired" in item && item.authRequired && !loggedIn) {
                       e.preventDefault();
@@ -223,40 +244,29 @@ export function AppShell({ children, showMatchStatus = false }: AppShellProps) {
                     }
                   }}
                 >
-                  <item.icon size={20} weight="light" />
-                  {!collapsed && <span>{item.label}</span>}
+                  <item.icon className="nav-item-icon" size={20} weight="light" />
+                  <span className="sidebar-text">{item.label}</span>
                 </Link>
               );
             })}
 
           <div className="mt-auto space-y-1 border-t border-sidebar-border pt-4">
-            {user && !collapsed && (
-              <p className="mb-2 px-2 text-xs text-muted-foreground">
+            {user && (
+              <p className="sidebar-footer-label mb-2 px-3 text-xs text-muted-foreground">
                 Signed in as {user.first_name}
               </p>
             )}
-            <Link
-              href="/help"
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 font-mono text-sm text-sidebar-foreground hover:bg-muted ${
-                collapsed ? "justify-center" : ""
-              }`}
-            >
-              <Question size={20} weight="light" />
-              {!collapsed && <span>Help</span>}
+            <Link href="/help" className="nav-item">
+              <Question className="nav-item-icon" size={20} weight="light" />
+              <span className="sidebar-text">Help</span>
             </Link>
-            <button
-              type="button"
-              onClick={onAuthCta}
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 font-mono text-sm text-sidebar-foreground hover:bg-muted ${
-                collapsed ? "justify-center" : ""
-              }`}
-            >
+            <button type="button" onClick={onAuthCta} className="nav-item">
               {loggedIn ? (
-                <SignOut size={20} weight="light" />
+                <SignOut className="nav-item-icon" size={20} weight="light" />
               ) : (
-                <UserPlus size={20} weight="light" />
+                <UserPlus className="nav-item-icon" size={20} weight="light" />
               )}
-              {!collapsed && <span>{loggedIn ? "Logout" : "Sign up"}</span>}
+              <span className="sidebar-text">{loggedIn ? "Logout" : "Sign up"}</span>
             </button>
           </div>
         </nav>

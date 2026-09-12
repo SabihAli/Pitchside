@@ -11,6 +11,7 @@ import {
   type KnowledgeFile,
   type KnowledgeStats,
 } from "@/lib/knowledge-api";
+import { UploadSimple } from "@/components/icons";
 
 const ACCEPT =
   ".pdf,.txt,.md,.csv,.xlsx,image/*,application/pdf,text/plain,text/markdown,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -175,9 +176,7 @@ export function KnowledgeView() {
             }
           }}
         >
-          <span className="material-symbols-outlined text-4xl text-primary">
-            upload_file
-          </span>
+          <UploadSimple className="text-primary" size={40} weight="light" />
           <strong className="font-semibold">
             {uploading ? "Uploading…" : "Drag & drop documents here"}
           </strong>

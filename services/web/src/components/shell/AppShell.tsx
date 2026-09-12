@@ -18,13 +18,30 @@ import {
   setAnonChatId,
 } from "@/lib/auth";
 import { formatRelativeTime } from "@/lib/time";
+import {
+  Books,
+  Gear,
+  Question,
+  SidebarSimple,
+  SignOut,
+  SoccerBall,
+  Trophy,
+  UserPlus,
+} from "@/components/icons";
+import type { Icon } from "@phosphor-icons/react";
 
-const nav = [
-  { href: "/leagues", label: "Leagues", icon: "emoji_events", authRequired: true },
-  { href: "/knowledge", label: "Ball Knowledge", icon: "library_add", authRequired: true },
-  { href: "/live-events", label: "Live Events", icon: "sensors" },
-  { href: "/settings", label: "Settings", icon: "settings", authOnly: true },
-] as const;
+const nav: {
+  href: string;
+  label: string;
+  icon: Icon;
+  authRequired?: boolean;
+  authOnly?: boolean;
+}[] = [
+  { href: "/leagues", label: "Leagues", icon: Trophy, authRequired: true },
+  { href: "/knowledge", label: "Ball Knowledge", icon: Books, authRequired: true },
+  { href: "/live-events", label: "Live Events", icon: SoccerBall },
+  { href: "/settings", label: "Settings", icon: Gear, authOnly: true },
+];
 
 type AppShellProps = {
   children: ReactNode;
@@ -139,9 +156,7 @@ export function AppShell({ children, showMatchStatus = false }: AppShellProps) {
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             onClick={() => setCollapsed((v) => !v)}
           >
-            <span className="material-symbols-outlined text-[18px]">
-              {collapsed ? "left_panel_open" : "left_panel_close"}
-            </span>
+            <SidebarSimple className="text-[18px]" size={18} weight="light" />
           </button>
         </div>
 
@@ -151,7 +166,7 @@ export function AppShell({ children, showMatchStatus = false }: AppShellProps) {
           disabled={kickoffPending}
           className="mb-6 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-70"
         >
-          <span className="material-symbols-outlined text-[22px]">sports</span>
+          <SoccerBall size={22} weight="light" />
           {!collapsed && <span>{kickoffPending ? "Starting…" : "Kickoff"}</span>}
         </button>
 
@@ -208,7 +223,7 @@ export function AppShell({ children, showMatchStatus = false }: AppShellProps) {
                     }
                   }}
                 >
-                  <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                  <item.icon size={20} weight="light" />
                   {!collapsed && <span>{item.label}</span>}
                 </Link>
               );
@@ -226,7 +241,7 @@ export function AppShell({ children, showMatchStatus = false }: AppShellProps) {
                 collapsed ? "justify-center" : ""
               }`}
             >
-              <span className="material-symbols-outlined text-[20px]">help</span>
+              <Question size={20} weight="light" />
               {!collapsed && <span>Help</span>}
             </Link>
             <button
@@ -236,9 +251,11 @@ export function AppShell({ children, showMatchStatus = false }: AppShellProps) {
                 collapsed ? "justify-center" : ""
               }`}
             >
-              <span className="material-symbols-outlined text-[20px]">
-                {loggedIn ? "logout" : "person_add"}
-              </span>
+              {loggedIn ? (
+                <SignOut size={20} weight="light" />
+              ) : (
+                <UserPlus size={20} weight="light" />
+              )}
               {!collapsed && <span>{loggedIn ? "Logout" : "Sign up"}</span>}
             </button>
           </div>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Merriweather, Montserrat, Source_Code_Pro } from "next/font/google";
+import { Montserrat, Source_Code_Pro } from "next/font/google";
 import { Suspense } from "react";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import "./globals.css";
@@ -7,13 +7,6 @@ import "./globals.css";
 const montserrat = Montserrat({
   subsets: ["latin"],
   variable: "--font-montserrat",
-  display: "swap",
-});
-
-const merriweather = Merriweather({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-merriweather",
   display: "swap",
 });
 
@@ -42,7 +35,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${montserrat.variable} ${merriweather.variable} ${sourceCode.variable} font-sans`}
+        className={`${montserrat.variable} ${sourceCode.variable} font-sans`}
       >
         <AuthProvider>
           <Suspense fallback={<div className="h-screen bg-background" />}>

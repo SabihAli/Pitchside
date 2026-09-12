@@ -12,6 +12,7 @@ import {
   verifyEmail,
 } from "@/lib/auth-api";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { X } from "@/components/icons";
 
 type Mode = "signup" | "signin";
 type Step = "form" | "verifyEmail" | "verify2fa";
@@ -275,7 +276,7 @@ export function AuthModal() {
           onClick={close}
           className="absolute right-3.5 top-3.5 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
         >
-          <span className="material-symbols-outlined text-[20px]">close</span>
+          <X size={20} weight="light" />
         </button>
 
         <header className="mb-6 px-7 text-center">

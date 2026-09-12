@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { Globe } from "@/components/icons";
 
 type ChatComposerProps = {
   disabled?: boolean;
@@ -51,7 +52,7 @@ export function ChatComposer({
               : "border-border text-muted-foreground hover:border-ring hover:text-foreground"
           }`}
         >
-          <span className="material-symbols-outlined text-[18px]">travel_explore</span>
+          <Globe size={18} weight="light" />
         </button>
         <button
           type="submit"

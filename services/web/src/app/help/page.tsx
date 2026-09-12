@@ -1,23 +1,27 @@
-import { AppShell } from "@/components/shell/AppShell";
+"use client";
 
-const guides = [
+import { AppShell } from "@/components/shell/AppShell";
+import { Books, SoccerBall, Trophy } from "@/components/icons";
+import type { Icon } from "@phosphor-icons/react";
+
+const guides: { icon: Icon; title: string; copy: string }[] = [
   {
-    icon: "sports",
+    icon: SoccerBall,
     title: "Kickoff",
     copy: "Start a standalone match thread and ask a tactical question. Guest threads are saved locally and merge into your account after sign-in.",
   },
   {
-    icon: "emoji_events",
+    icon: Trophy,
     title: "Leagues",
     copy: "Organize recurring research and briefings as leagues. Chats can remain standalone and do not require a league.",
   },
   {
-    icon: "library_add",
+    icon: Books,
     title: "Ball Knowledge",
     copy: "Upload your own reports and notes. Indexed documents ground answers across your account’s chats.",
   },
   {
-    icon: "sensors",
+    icon: SoccerBall,
     title: "Live Events",
     copy: "Follow live scores from the configured football MCP provider. The feed refreshes automatically every minute.",
   },
@@ -43,9 +47,7 @@ export default function HelpPage() {
                 key={guide.title}
                 className="rounded-xl border border-border bg-card p-5"
               >
-                <span className="material-symbols-outlined text-2xl text-primary">
-                  {guide.icon}
-                </span>
+                <guide.icon className="text-primary" size={24} weight="light" />
                 <h2 className="mt-3 font-serif text-lg font-semibold">
                   {guide.title}
                 </h2>

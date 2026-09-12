@@ -10,6 +10,7 @@ import {
   listProjects,
   type Project,
 } from "@/lib/projects-api";
+import { CaretDown, MagnifyingGlass, Trash, X } from "@/components/icons";
 
 type SortKey = "newest" | "oldest" | "name";
 
@@ -183,9 +184,7 @@ export function LeaguesView() {
                 className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground hover:border-ring hover:text-foreground"
               >
                 <span>{sortLabel}</span>
-                <span className="material-symbols-outlined text-[18px]">
-                  expand_more
-                </span>
+                <CaretDown size={18} weight="light" />
               </button>
               {sortOpen && (
                 <div className="absolute right-0 z-10 mt-1 min-w-[180px] rounded-lg border border-border bg-card py-1 shadow-lg">
@@ -227,9 +226,7 @@ export function LeaguesView() {
         </div>
 
         <div className="mb-6 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5">
-          <span className="material-symbols-outlined text-muted-foreground">
-            search
-          </span>
+          <MagnifyingGlass className="text-muted-foreground" size={18} weight="light" />
           <input
             type="search"
             value={query}
@@ -286,9 +283,7 @@ export function LeaguesView() {
                     onClick={() => void onDelete(p)}
                     className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-destructive group-hover:opacity-100 focus:opacity-100 disabled:opacity-50"
                   >
-                    <span className="material-symbols-outlined text-[18px]">
-                      delete
-                    </span>
+                    <Trash size={18} weight="light" />
                   </button>
                 </div>
                 <p className="mt-2 flex-1 text-sm text-muted-foreground">
@@ -327,7 +322,7 @@ export function LeaguesView() {
               onClick={() => setModalOpen(false)}
               className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             >
-              <span className="material-symbols-outlined text-[20px]">close</span>
+              <X size={20} weight="light" />
             </button>
             <h2
               id="league-create-title"

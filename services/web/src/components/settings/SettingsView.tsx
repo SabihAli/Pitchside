@@ -11,6 +11,7 @@ import {
   type ApiKeyName,
   type ApiKeys,
 } from "@/lib/settings-api";
+import { Eye, EyeSlash } from "@/components/icons";
 
 const EMPTY_KEYS = Object.fromEntries(
   API_KEY_NAMES.map((name) => [name, ""]),
@@ -174,9 +175,11 @@ export function SettingsView() {
                         className="absolute right-1 top-1 inline-flex h-8 w-8 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
                         aria-label={`${visible.has(name) ? "Hide" : "Show"} ${name}`}
                       >
-                        <span className="material-symbols-outlined text-[18px]">
-                          {visible.has(name) ? "visibility_off" : "visibility"}
-                        </span>
+                        {visible.has(name) ? (
+                          <EyeSlash size={18} weight="light" />
+                        ) : (
+                          <Eye size={18} weight="light" />
+                        )}
                       </button>
                     </span>
                   </label>

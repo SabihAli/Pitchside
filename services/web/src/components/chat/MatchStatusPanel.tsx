@@ -5,12 +5,20 @@ import {
   stageLabel,
   useMatchStatus,
 } from "@/components/chat/MatchStatusContext";
+import {
+  ChartLineUp,
+  CheckCircle,
+  Circle,
+  Hourglass,
+  WarningCircle,
+} from "@/components/icons";
+import type { Icon } from "@phosphor-icons/react";
 
-function statusIcon(status: string): string {
-  if (status === "active") return "progress_activity";
-  if (status === "complete") return "check_circle";
-  if (status === "error") return "error";
-  return "radio_button_unchecked";
+function statusIcon(status: string): Icon {
+  if (status === "active") return Hourglass;
+  if (status === "complete") return CheckCircle;
+  if (status === "error") return WarningCircle;
+  return Circle;
 }
 
 export function MatchStatusPanel() {
@@ -21,7 +29,7 @@ export function MatchStatusPanel() {
     <aside className="hidden w-[320px] shrink-0 flex-col border-l border-border bg-card/80 lg:flex">
       <div className="border-b border-border p-4">
         <h2 className="flex items-center gap-2 font-serif text-lg font-semibold">
-          <span className="material-symbols-outlined text-primary">timeline</span>
+          <ChartLineUp className="text-primary" size={20} weight="light" />
           Match Status
           {running && (
             <span className="ml-auto font-mono text-[11px] uppercase text-primary">
@@ -36,13 +44,15 @@ export function MatchStatusPanel() {
             No active analysis — send a message to start the match pipeline.
           </p>
         ) : (
-          ordered.map((s) => (
+          ordered.map((s) => {
+            const StageIcon = statusIcon(s.status);
+            return (
             <div
               key={s.key}
               className="flex items-start gap-3 rounded-lg border border-border/60 bg-background/40 px-3 py-2.5"
             >
-              <span
-                className={`material-symbols-outlined mt-0.5 text-[18px] ${
+              <StageIcon
+                className={`mt-0.5 ${
                   s.status === "active"
                     ? "animate-spin text-primary"
                     : s.status === "complete"
@@ -51,9 +61,9 @@ export function MatchStatusPanel() {
                         ? "text-destructive"
                         : "text-muted-foreground"
                 }`}
-              >
-                {statusIcon(s.status)}
-              </span>
+                size={18}
+                weight="light"
+              />
               <div className="min-w-0 flex-1">
                 <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
                   {s.iteration != null ? `Iter ${s.iteration}` : "Stage"}
@@ -63,7 +73,8 @@ export function MatchStatusPanel() {
                 </p>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </aside>

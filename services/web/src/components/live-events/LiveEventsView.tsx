@@ -6,6 +6,7 @@ import {
   getLiveEvents,
   type LiveEventsResponse,
 } from "@/lib/live-events-api";
+import { ArrowsClockwise, SoccerBall, WifiSlash } from "@/components/icons";
 
 function score(value: number | null): string {
   return value == null ? "–" : String(value);
@@ -69,11 +70,11 @@ export function LiveEventsView() {
             onClick={() => void refresh(true)}
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:border-ring disabled:opacity-60"
           >
-            <span
-              className={`material-symbols-outlined text-[18px] ${refreshing ? "animate-spin" : ""}`}
-            >
-              refresh
-            </span>
+            <ArrowsClockwise
+              className={refreshing ? "animate-spin" : ""}
+              size={18}
+              weight="light"
+            />
             Refresh
           </button>
         </header>
@@ -90,9 +91,7 @@ export function LiveEventsView() {
             </div>
           ) : error ? (
             <div className="rounded-2xl border border-destructive/40 bg-destructive/10 px-6 py-10 text-center">
-              <span className="material-symbols-outlined text-3xl text-destructive">
-                signal_disconnected
-              </span>
+              <WifiSlash className="text-destructive" size={32} weight="light" />
               <p className="mt-2 font-semibold">Live feed unavailable</p>
               <p className="mt-1 text-sm text-muted-foreground">{error}</p>
               <button
@@ -138,9 +137,7 @@ export function LiveEventsView() {
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-border bg-muted/40 px-6 py-16 text-center">
-              <span className="material-symbols-outlined text-4xl text-primary">
-                sports_soccer
-              </span>
+              <SoccerBall className="text-primary" size={40} weight="light" />
               <p className="mt-3 font-serif text-xl font-semibold">
                 No live matches
               </p>

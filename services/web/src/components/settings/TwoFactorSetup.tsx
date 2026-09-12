@@ -81,7 +81,7 @@ export function TwoFactorSetup() {
           </p>
         </div>
         {enabled && stage !== "setup" && (
-          <span className="shrink-0 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+          <span className="shrink-0 rounded border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             Enabled
           </span>
         )}
@@ -98,7 +98,7 @@ export function TwoFactorSetup() {
           type="button"
           onClick={startSetup}
           disabled={pending}
-          className="mt-4 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          className="mt-4 rounded bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
         >
           {pending ? "Starting…" : "Enable 2FA"}
         </button>

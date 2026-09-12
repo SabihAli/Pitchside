@@ -68,7 +68,7 @@ export function LiveEventsView() {
             type="button"
             disabled={loading || refreshing}
             onClick={() => void refresh(true)}
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:border-ring disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded border border-border bg-card px-4 py-2 text-sm font-medium hover:border-ring disabled:opacity-60"
           >
             <ArrowsClockwise
               className={refreshing ? "animate-spin" : ""}
@@ -97,7 +97,7 @@ export function LiveEventsView() {
               <button
                 type="button"
                 onClick={() => void refresh(true)}
-                className="mt-4 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                className="mt-4 rounded bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
               >
                 Try again
               </button>
@@ -113,7 +113,7 @@ export function LiveEventsView() {
                     <p className="truncate font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
                       {event.competition}
                     </p>
-                    <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 font-mono text-[11px] font-semibold uppercase text-primary">
+                    <span className="shrink-0 rounded bg-primary/15 px-2.5 py-1 font-mono text-[11px] font-semibold uppercase text-primary">
                       {event.minute || event.status}
                     </span>
                   </div>

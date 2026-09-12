@@ -133,7 +133,7 @@ export function KnowledgeView() {
         <button
           type="button"
           onClick={openAuth}
-          className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          className="rounded bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
         >
           Sign up
         </button>

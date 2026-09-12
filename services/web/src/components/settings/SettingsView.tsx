@@ -206,7 +206,7 @@ export function SettingsView() {
             <button
               type="submit"
               disabled={loading || saving}
-              className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+              className="rounded bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
             >
               {saving ? "Saving…" : "Save keys"}
             </button>

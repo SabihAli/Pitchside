@@ -163,7 +163,7 @@ export function LeaguesView() {
         <button
           type="button"
           onClick={openAuth}
-          className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          className="rounded bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
         >
           Sign in
         </button>
@@ -218,7 +218,7 @@ export function LeaguesView() {
                 setFormError(null);
                 setModalOpen(true);
               }}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+              className="rounded bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
             >
               New league
             </button>
@@ -259,7 +259,7 @@ export function LeaguesView() {
               <button
                 type="button"
                 onClick={() => setModalOpen(true)}
-                className="mt-6 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                className="mt-6 rounded bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
               >
                 New league
               </button>
@@ -367,7 +367,7 @@ export function LeaguesView() {
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                className="rounded bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
               >
                 {pending ? "Creating…" : "Create"}
               </button>

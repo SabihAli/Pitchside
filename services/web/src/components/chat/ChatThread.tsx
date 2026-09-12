@@ -62,29 +62,6 @@ export function ChatThread({ chatId }: ChatThreadProps) {
     [setRunning, syncMessages],
   );
 
-  const appendAssistantReply = useCallback((reply: string) => {
-    const trimmed = reply.trim();
-    if (!trimmed) return;
-    setMessages((prev) => {
-      const last = prev[prev.length - 1];
-      if (last?.role === "assistant" && last.content === trimmed) {
-        return prev;
-      }
-      const id = `ws-${Date.now()}`;
-      if (assistantIdsRef.current.has(id)) return prev;
-      assistantIdsRef.current.add(id);
-      return [
-        ...prev,
-        {
-          id,
-          role: "assistant",
-          content: trimmed,
-          created_at: new Date().toISOString(),
-        },
-      ];
-    });
-  }, []);
-
   const openAuth = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("auth", "signin");

@@ -2,10 +2,23 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useMatchStatus } from "@/components/chat/MatchStatusContext";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { MessageContent } from "@/components/chat/MessageContent";
 import { formatApiError } from "@/lib/api";
+
+/** Defensive initials derivation: empty, single-token, and very long names all resolve to 1-2 chars. */
+function userInitials(name: string | undefined): string {
+  const trimmed = (name ?? "").trim();
+  if (!trimmed) return "?";
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  const initials = parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+  return initials || "?";
+}
 import {
   getChat,
   isLoginRequired,
@@ -30,6 +43,8 @@ export function ChatThread({ chatId }: ChatThreadProps) {
   const searchParams = useSearchParams();
   const { setOptimisticStart, applyEvent, resetStages, setRunning } =
     useMatchStatus();
+  const { user } = useAuth();
+  const initials = userInitials(user?.first_name);
 
   const [title, setTitle] = useState("Match thread");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -228,25 +243,45 @@ export function ChatThread({ chatId }: ChatThreadProps) {
           </div>
         ) : (
           <ul className="mx-auto flex max-w-3xl flex-col gap-4">
-            {messages.map((m) => (
-              <li
-                key={m.id}
-                className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                    m.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border bg-card text-card-foreground"
-                  }`}
-                >
-                  <MessageContent content={m.content} role={m.role} />
-                </div>
-              </li>
-            ))}
+            {messages.map((m) =>
+              m.role === "user" ? (
+                <li key={m.id} className="chat-row ml-auto flex justify-end gap-3">
+                  <div className="chat-bubble-user min-w-0 max-w-[85%] rounded-xl rounded-tr-sm border border-primary/40 bg-primary/20 p-3 text-sm leading-relaxed text-foreground sm:p-4">
+                    <MessageContent content={m.content} role={m.role} />
+                  </div>
+                  <div
+                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-primary/40 bg-primary/20 text-xs font-semibold text-primary"
+                    aria-label="You"
+                    role="img"
+                  >
+                    {initials}
+                  </div>
+                </li>
+              ) : (
+                <li key={m.id} className="chat-row flex max-w-full gap-3 sm:max-w-3xl">
+                  <div
+                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-primary/40 bg-primary/20 text-xs font-semibold text-primary"
+                    aria-label="Pitchside"
+                    role="img"
+                  >
+                    P
+                  </div>
+                  <div className="min-w-0 w-full flex-1 rounded-xl rounded-tl-sm border border-border bg-card p-3 text-sm leading-relaxed text-card-foreground sm:p-4">
+                    <MessageContent content={m.content} role={m.role} />
+                  </div>
+                </li>
+              ),
+            )}
             {pending && (
-              <li className="flex justify-start">
-                <div className="rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+              <li className="chat-row flex max-w-full gap-3 sm:max-w-3xl">
+                <div
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-primary/40 bg-primary/20 text-xs font-semibold text-primary"
+                  aria-label="Pitchside"
+                  role="img"
+                >
+                  P
+                </div>
+                <div className="rounded-xl rounded-tl-sm border border-border bg-card p-3 text-sm text-muted-foreground sm:p-4">
                   Analyzing…
                 </div>
               </li>

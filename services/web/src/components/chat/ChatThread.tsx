@@ -6,6 +6,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useMatchStatus } from "@/components/chat/MatchStatusContext";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { MessageContent } from "@/components/chat/MessageContent";
+import { PitchCanvas } from "@/components/chat/PitchCanvas";
 import { formatApiError } from "@/lib/api";
 
 /** Defensive initials derivation: empty, single-token, and very long names all resolve to 1-2 chars. */
@@ -225,13 +226,14 @@ export function ChatThread({ chatId }: ChatThreadProps) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-background">
-      <header className="border-b border-border px-6 py-4">
+    <div className="relative flex h-full flex-col bg-background pitch-pattern">
+      <PitchCanvas />
+      <header className="pitch-content border-b border-border px-6 py-4">
         <p className="font-mono text-xs uppercase text-muted-foreground">Chat</p>
         <h1 className="mt-1 font-serif text-2xl font-bold">{title}</h1>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+      <div className="pitch-content scrollbar-hide min-h-0 flex-1 overflow-y-auto px-6 py-4">
         {initialLoading && messages.length === 0 ? (
           <p className="text-sm text-muted-foreground">Loading match thread…</p>
         ) : messages.length === 0 ? (
@@ -296,7 +298,9 @@ export function ChatThread({ chatId }: ChatThreadProps) {
         )}
       </div>
 
-      <ChatComposer pending={pending || initialLoading} onSend={onSend} />
+      <div className="pitch-content">
+        <ChatComposer pending={pending || initialLoading} onSend={onSend} />
+      </div>
     </div>
   );
 }

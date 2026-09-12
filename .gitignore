@@ -9,8 +9,12 @@ __pycache__/
 .DS_Store
 db_dump.json
 trace_logs.db
+*.log
+alembic.ini;*
 data/
 skills/*
 futbot-venv/
 services/web/node_modules/
 services/web/.next/
+.claude/
+skills-lock.json

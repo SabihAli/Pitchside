@@ -14,7 +14,7 @@ export PYTHONPATH := .
 .PHONY: help install backend frontend seed-kb
 
 RETRIEVAL_URL ?= http://localhost:8085
-GLOBAL_KB_CSV ?= final-articles.csv
+GLOBAL_KB_CSV ?= data/final-articles.csv
 
 help:
 	@echo "FutBot Makefile targets:"

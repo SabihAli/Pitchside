@@ -13,9 +13,6 @@ import {
 } from "@/lib/knowledge-api";
 import { UploadSimple } from "@/components/icons";
 
-const UPLOADS_ENABLED =
-  process.env.NEXT_PUBLIC_KNOWLEDGE_UPLOADS_ENABLED === "true";
-
 const ACCEPT =
   ".pdf,.txt,.md,.csv,.xlsx,image/*,application/pdf,text/plain,text/markdown,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -149,17 +146,10 @@ export function KnowledgeView() {
       <div className="mx-auto max-w-3xl">
         <h1 className="font-serif text-3xl font-bold">Ball Knowledge</h1>
         <p className="mt-2 text-muted-foreground">
-          Your account RAG corpus — not tied to a league.
-          {UPLOADS_ENABLED && " Drop match reports, PDFs, and notes here."}
+          Your account RAG corpus — not tied to a league. Drop match reports,
+          PDFs, and notes here.
         </p>
 
-        {!UPLOADS_ENABLED && (
-          <p className="mt-8 rounded-2xl border border-border bg-muted px-6 py-5 text-sm text-muted-foreground">
-            The knowledge base is read-only — adding new documents is turned off.
-          </p>
-        )}
-
-        {UPLOADS_ENABLED && (
         <label
           className={`mt-8 flex min-h-52 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-6 text-center transition-colors ${
             dragOver
@@ -205,7 +195,6 @@ export function KnowledgeView() {
             }}
           />
         </label>
-        )}
 
         {error && (
           <p className="mt-4 text-sm text-destructive" role="alert">

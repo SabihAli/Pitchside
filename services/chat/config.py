@@ -19,12 +19,6 @@ class Settings:
             "ORCHESTRATOR_SERVICE_URL", "http://localhost:8084"
         )
         self.tools_service_url = os.getenv("TOOLS_SERVICE_URL", "http://localhost:8088")
-        # Serverless platforms may freeze a function once its response is
-        # sent, killing FastAPI background tasks -- so there the pipeline runs
-        # inside the request and the reply is returned directly.
-        self.pipeline_inline = os.getenv(
-            "PIPELINE_INLINE", "true" if os.getenv("VERCEL") else "false"
-        ).lower() in {"1", "true", "yes"}
         self.snapshot_max_tokens = int(os.getenv("SNAPSHOT_MAX_TOKENS", "300"))
 
 

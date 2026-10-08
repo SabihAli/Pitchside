@@ -1,0 +1,6 @@
+# Public entrypoint. Caddy obtains and renews the TLS certificate for $DOMAIN.
+# Server-Sent Events (/api/events/pipeline) are flushed immediately by Caddy.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}

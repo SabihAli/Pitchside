@@ -1,6 +1,8 @@
 import logging
 import os
 
+import chromadb
+
 from services.retrieval.bm25 import BM25Store
 from services.retrieval.config import settings
 from services.retrieval.engine import RetrievalEngine
@@ -12,8 +14,6 @@ def migrate_chroma_to_qdrant(engine: RetrievalEngine) -> int:
     """Import legacy ChromaDB + BM25 pickle into Qdrant/BM25 store."""
     if not os.path.isdir(settings.chroma_path):
         return 0
-
-    import chromadb  # legacy-only dependency; not installed on Vercel
 
     client = chromadb.PersistentClient(path=settings.chroma_path)
     collection_names = [c.name for c in client.list_collections()]

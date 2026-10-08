@@ -57,7 +57,10 @@ def test_orchestrator_node(mocker):
 
 def test_simple_responder_node(mocker):
     mocker.patch("services.rag_orchestrator.graph.invoke_llm", return_value="Hello! I am a football bot.")
-    mocker.patch("services.rag_orchestrator.graph.get_prompt", return_value="Prompt: {query}")
+    mocker.patch(
+        "services.rag_orchestrator.graph.get_prompt_parts",
+        return_value=("System prompt", "Prompt: {query}"),
+    )
     state: GraphState = {"rewritten_query": "Hi"}
     
     new_state = simple_responder_node(state)
@@ -78,8 +81,13 @@ def test_retrieve_node(mocker):
 
 def test_draft_node(mocker):
     mocker.patch("services.rag_orchestrator.graph.DraftGenerator.generate", return_value="Draft answer")
-    state: GraphState = {"rewritten_query": "Q", "retrieved_chunks": []}
-    
+    # With no chunks the node deliberately swaps in the KB-miss message,
+    # so give it context to draft from.
+    state: GraphState = {
+        "rewritten_query": "Q",
+        "retrieved_chunks": [{"document": "Messi scored.", "chunk_id": "c1"}],
+    }
+
     new_state = draft_node(state)
     assert new_state["draft_answer"] == "Draft answer"
 

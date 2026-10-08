@@ -3,6 +3,7 @@ import os
 import traceback
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -87,7 +88,9 @@ def register_exception_handlers(app: FastAPI) -> None:
             status_code=422,
             code="VALIDATION_ERROR",
             message=message or "Request validation failed.",
-            details=errors if is_dev_mode() else None,
+            # jsonable_encoder: custom-validator errors carry the raised
+            # exception object in ``ctx``, which plain JSON can't encode.
+            details=jsonable_encoder(errors) if is_dev_mode() else None,
         )
 
     @app.exception_handler(Exception)

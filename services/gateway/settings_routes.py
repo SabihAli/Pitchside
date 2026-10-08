@@ -15,8 +15,8 @@ from services.gateway.config import settings
 
 
 def _require_env_file_settings() -> None:
-    # Hosted deployments (Vercel) keep keys in the platform's env vars: the
-    # filesystem is read-only, and end users must not read server secrets.
+    # Public multi-user deployments must not let end users read or replace
+    # server secrets; set SETTINGS_API_KEYS_ENABLED=false there.
     if not settings.settings_api_keys_enabled:
         raise AuthError(
             "SETTINGS_MANAGED_EXTERNALLY",

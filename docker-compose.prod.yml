@@ -1,0 +1,118 @@
+# Production overlay for a single VPS (e.g. Contabo). Use it INSTEAD of the
+# local docker-compose.override.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# - Only Caddy (80/443, automatic HTTPS) is published; everything else stays on
+#   the internal docker network.
+# - Database / object-store credentials come from .env (see docs/DEPLOY_VPS.md).
+# - The browser talks to the web app only; it proxies /api/* to the gateway.
+
+x-restart: &restart
+  restart: unless-stopped
+
+x-db-url: &db-url postgresql+asyncpg://futbot:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/futbot
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    <<: *restart
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+  web:
+    <<: *restart
+    ports: !reset []
+
+  gateway:
+    <<: *restart
+    ports: !reset []
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      # End users must not read or overwrite server API keys.
+      SETTINGS_API_KEYS_ENABLED: "false"
+
+  auth:
+    <<: *restart
+    ports: !reset []
+    environment:
+      DATABASE_URL: *db-url
+      ENVIRONMENT: production
+      DEBUG: "false"
+
+  chat:
+    <<: *restart
+    ports: !reset []
+    environment:
+      DATABASE_URL: *db-url
+
+  project:
+    <<: *restart
+    ports: !reset []
+    environment:
+      DATABASE_URL: *db-url
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+
+  ingestion:
+    <<: *restart
+    ports: !reset []
+    environment:
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+
+  rag-orchestrator:
+    <<: *restart
+    ports: !reset []
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+
+  llm-gateway:
+    <<: *restart
+    ports: !reset []
+
+  retrieval:
+    <<: *restart
+    ports: !reset []
+
+  tools:
+    <<: *restart
+    ports: !reset []
+
+  observability:
+    <<: *restart
+    ports: !reset []
+
+  postgres:
+    <<: *restart
+    ports: !reset []
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+  redis:
+    <<: *restart
+    ports: !reset []
+
+  qdrant:
+    <<: *restart
+    ports: !reset []
+
+  minio:
+    <<: *restart
+    ports: !reset []
+    environment:
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -11,7 +11,7 @@ from qdrant_client.models import (
     VectorParams,
 )
 
-from services.retrieval.embeddings import embed_texts, embedding_dim
+from services.retrieval.embeddings import embed_texts
 
 GLOBAL_PROJECT_KEY = "__global__"
 
@@ -42,7 +42,7 @@ class DenseStore:
         if not self._client.collection_exists(self._collection):
             self._client.create_collection(
                 collection_name=self._collection,
-                vectors_config=VectorParams(size=embedding_dim(), distance=Distance.COSINE),
+                vectors_config=VectorParams(size=384, distance=Distance.COSINE),
             )
 
     def add_chunks(
@@ -115,27 +115,6 @@ class DenseStore:
                 }
             )
         return results
-
-    def iter_all(self, batch_size: int = 512):
-        """Yield (chunk_id, document, project_id, metadata) for every stored point."""
-        offset = None
-        while True:
-            points, offset = self._client.scroll(
-                collection_name=self._collection,
-                limit=batch_size,
-                offset=offset,
-                with_payload=True,
-                with_vectors=False,
-            )
-            for point in points:
-                payload = dict(point.payload or {})
-                chunk_id = payload.pop("chunk_id", str(point.id))
-                document = payload.pop("document", "")
-                stored_pid = payload.pop("project_id", GLOBAL_PROJECT_KEY)
-                project_id = None if stored_pid == GLOBAL_PROJECT_KEY else stored_pid
-                yield chunk_id, document, project_id, payload
-            if offset is None:
-                break
 
     def count(self, project_id: str | None = None) -> int:
         result = self._client.count(

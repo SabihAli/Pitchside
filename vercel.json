@@ -1,9 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": {
-    "vercel_app.py": {
-      "maxDuration": 300,
-      "excludeFiles": "{services/web/**,frontend/**,src/**,tests/**,test_data/**,data/**,docs/**,k8s/**,infra/**,observability/**,scripts/**,futbot-venv/**,**/node_modules/**,**/__pycache__/**,**/Dockerfile,docker-compose*.yml,services/ingestion/extractors/**}"
-    }
-  }
-}

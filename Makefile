@@ -27,7 +27,7 @@ help:
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
-	$(PYTHON) -m pip install -r requirements-docker.txt
+	$(PYTHON) -m pip install -r requirements.txt
 	$(PYTHON) -c "import nltk; [nltk.download(r, quiet=True) for r in ('punkt', 'punkt_tab')]"
 	$(PYTHON) -c "import os; os.makedirs('data', exist_ok=True)"
 	@$(PYTHON) -c "import os; print('Note: create a .env file with API keys (see README).') if not os.path.exists('.env') else print('.env found')"

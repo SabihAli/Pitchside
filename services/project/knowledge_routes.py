@@ -48,7 +48,10 @@ async def knowledge_stats(
             func.count(UserKnowledgeFile.id),
             func.coalesce(func.sum(UserKnowledgeFile.chunks_indexed), 0),
             func.coalesce(func.sum(UserKnowledgeFile.tokens_indexed), 0),
-        ).where(UserKnowledgeFile.user_id == user_id)
+        ).where(
+            UserKnowledgeFile.user_id == user_id,
+            UserKnowledgeFile.status == "ingested",
+        )
     )
     files, chunks, tokens = result.one()
     return DataResponse(

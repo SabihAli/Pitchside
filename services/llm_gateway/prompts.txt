@@ -16,6 +16,8 @@ Use the snapshot to recover: primary_goal, current_intent, entities, facts, open
 If the user's query is already standalone, return it EXACTLY AS IS, COPIED WORD FOR WORD. DO NOT answer the query.
 
 [REWRITER_USER]
+Today's date: {current_date}
+
 [CONVERSATION SNAPSHOT]
 {snapshot}
 
@@ -27,6 +29,8 @@ If the user's query is already standalone, return it EXACTLY AS IS, COPIED WORD 
 
 [PRIOR JUDGE FEEDBACK]
 {judge_feedback}
+
+If the query uses a relative time expression (e.g. "today", "tomorrow", "this weekend", "next month"), resolve it against today's date above when rewriting, so the standalone query carries an absolute date or timeframe instead of a relative one.
 
 Rewritten Query (NO PREAMBLE):
 
@@ -106,9 +110,11 @@ KNOWLEDGE: Football Q&A answerable from conversation context and the uploaded kn
 
 TOOL: Requires information outside the knowledge base time coverage, live/current external information, or structured football API data (standings, squads, match events, fixtures).
 
+You will be given today's actual date. Use it to resolve relative time expressions and to judge whether the query's implied date falls inside or outside the KB's fixed 2022–2024 coverage window.
+
 Choose TOOL when ANY of the following apply:
 - The query asks about events, seasons, transfers, stats, or news after 2024 or before 2022 (e.g. 2025/26 season, 2026 World Cup, transfers in 2025).
-- The query uses temporal cues like "today", "now", "latest", "live", "current", "this season", or "recent" when the implied date is outside 2022–2024 or needs up-to-the-minute data.
+- The query uses temporal cues like "today", "now", "latest", "live", "current", "this season", "next", "upcoming", or "recent" — resolve these against today's actual date, not the training/writing date of this prompt, and choose TOOL if the resolved date is outside 2022–2024 or the query needs up-to-the-minute data.
 - The query needs structured football API data that may have changed since the KB was indexed.
 
 Rules:
@@ -118,6 +124,8 @@ Rules:
 - Only choose KNOWLEDGE when you are confident the answer should exist in 2022–2024 KB content without external lookup.
 
 [ORCHESTRATOR_USER]
+Today's date: {current_date}
+
 Query: {query}
 
 Classification:
@@ -151,6 +159,7 @@ Situation: You have been given context blocks and a user query. Context may incl
 Task: Write a clear, faithful answer using ONLY the provided context.
 
 Constraints:
+- You will be given today's actual date. Resolve any relative time expressions in the query (e.g. "today", "tomorrow", "next", "upcoming") against that date — never against your own training cutoff.
 - Read every context block THOROUGHLY before answering.
 - Use ONLY information present in the context — do not invent facts.
 - Synthesize tool results and knowledge-base chunks into one coherent answer when both are present.
@@ -159,7 +168,9 @@ Constraints:
 - If the context partially supports the answer, answer what the sources DO support, and clearly state what information is missing or unclear.
 - ONLY if the context contains absolutely no relevant information to answer the query:
   1. State clearly that your knowledge base does not contain the information needed to answer.
-  2. Invite the user to enable web search (globe icon next to the message box) and ask again for a web-backed answer.
+  2. Check the "Web search status" line below before saying anything about web search:
+     - If it says web search is DISABLED, invite the user to enable web search (globe icon next to the message box) and ask again for a web-backed answer.
+     - If it says web search is ENABLED, do NOT tell the user to enable it — it already is. Instead say the web search did not return enough to answer this query, and suggest rephrasing or narrowing the question.
   3. Do NOT use a generic refusal such as "I cannot help you with that."
 - When drawing from multiple context chunks, synthesize them into a single coherent answer. Do NOT list chunks separately or cite sources unless the query explicitly asks for them.
 
@@ -169,6 +180,9 @@ Format your response to match the nature of the query:
 - Comparative questions (player vs player, team vs team): use a structured format (e.g. a short table or labelled sections) where it aids comprehension.
 
 [DRAFT_GENERATOR_USER]
+Today's date: {current_date}
+Web search status: {web_search_status}
+
 ---CONTEXT CHUNKS---
 {context_text}
 ---END CONTEXT---

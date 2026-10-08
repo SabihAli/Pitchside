@@ -5,9 +5,23 @@ REFUSAL_PHRASES = (
     "can't help you with that",
     "do not have information",
     "don't have information",
+    "do not have any information",
+    "don't have any information",
+    "does not have information",
+    "doesn't have information",
     "no relevant information",
+    "no information",
     "could not find information",
     "couldn't find information",
+    "could not find any information",
+    "couldn't find any information",
+    # The draft-generator prompt always tells the model to point users at web
+    # search when context is empty, regardless of whether web search was
+    # already enabled/attempted. Any draft containing this instruction is a
+    # signal to hand off to the flag-aware kb_miss_message() below, rather
+    # than let the model's state-unaware wording reach the user verbatim.
+    "enable web search",
+    "enable **web search**",
 )
 
 

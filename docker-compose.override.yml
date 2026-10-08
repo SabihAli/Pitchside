@@ -1,0 +1,8 @@
+services:
+  redis:
+    # Host port 6379 is already taken by an unrelated project's redis
+    # container on this machine. Internal services address redis via the
+    # docker network hostname (redis://redis:6379/0), so remapping only the
+    # host-exposed port here is safe and keeps everything else untouched.
+    ports: !override
+      - "6380:6379"

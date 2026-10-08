@@ -47,7 +47,6 @@ export function ChatThread({ chatId }: ChatThreadProps) {
   const { user } = useAuth();
   const initials = userInitials(user?.first_name);
 
-  const [title, setTitle] = useState("Match thread");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [pending, setPending] = useState(false);
@@ -56,18 +55,25 @@ export function ChatThread({ chatId }: ChatThreadProps) {
   const wsRef = useRef<WebSocket | null>(null);
   const assistantIdsRef = useRef<Set<string>>(new Set());
 
-  const syncMessages = useCallback(async () => {
-    const synced = await listMessages(chatId);
-    setMessages((prev) => (synced.length > 0 ? synced : prev));
-    return synced;
-  }, [chatId]);
-
   const finishPipeline = useCallback(
     async (notice?: string) => {
-      try {
-        await syncMessages();
-      } catch {
-        // Keep the current thread visible if refresh fails.
+      // rag-orchestrator emits "pipeline_complete" over the websocket the
+      // instant the graph finishes, but the chat service only persists the
+      // assistant reply to Postgres *after* that HTTP call returns. A single
+      // fetch here can race that write and come back without the new
+      // message, so retry briefly and only accept a synced list once it's
+      // no longer mid-pipeline (i.e. it actually contains the reply).
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        try {
+          const synced = await listMessages(chatId);
+          if (synced.length > 0 && !isPipelineInFlight(synced)) {
+            setMessages(synced);
+            break;
+          }
+        } catch {
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 400));
       }
       setPending(false);
       setRunning(false);
@@ -75,7 +81,7 @@ export function ChatThread({ chatId }: ChatThreadProps) {
         setError(notice);
       }
     },
-    [setRunning, syncMessages],
+    [chatId, setRunning],
   );
 
   const openAuth = useCallback(() => {
@@ -120,10 +126,6 @@ export function ChatThread({ chatId }: ChatThreadProps) {
           listMessages(chatId),
         ]);
         if (cancelled) return;
-
-        if (chatResult.status === "fulfilled") {
-          setTitle(chatResult.value.title || "Match thread");
-        }
 
         if (messageResult.status === "fulfilled") {
           const msgs = messageResult.value;
@@ -228,10 +230,6 @@ export function ChatThread({ chatId }: ChatThreadProps) {
   return (
     <div className="relative flex h-full flex-col bg-background pitch-pattern">
       <PitchCanvas />
-      <header className="pitch-content border-b border-border px-6 py-4">
-        <p className="font-mono text-xs uppercase text-muted-foreground">Chat</p>
-        <h1 className="mt-1 font-serif text-2xl font-bold">{title}</h1>
-      </header>
 
       <div className="pitch-content scrollbar-hide min-h-0 flex-1 overflow-y-auto px-6 py-4">
         {initialLoading && messages.length === 0 ? (
@@ -244,15 +242,15 @@ export function ChatThread({ chatId }: ChatThreadProps) {
             </p>
           </div>
         ) : (
-          <ul className="mx-auto flex max-w-3xl flex-col gap-4">
+          <ul className="mx-auto flex max-w-5xl flex-col gap-4">
             {messages.map((m) =>
               m.role === "user" ? (
                 <li key={m.id} className="chat-row ml-auto flex justify-end gap-3">
-                  <div className="chat-bubble-user min-w-0 max-w-[85%] rounded-xl rounded-tr-sm border border-primary/40 bg-primary/20 p-3 text-sm leading-relaxed text-foreground sm:p-4">
+                  <div className="chat-bubble-user min-w-0 max-w-[85%] rounded-2xl rounded-tr-sm bg-primary/[0.14] p-3 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-4">
                     <MessageContent content={m.content} role={m.role} />
                   </div>
                   <div
-                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-primary/40 bg-primary/20 text-xs font-semibold text-primary"
+                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary"
                     aria-label="You"
                     role="img"
                   >
@@ -262,13 +260,13 @@ export function ChatThread({ chatId }: ChatThreadProps) {
               ) : (
                 <li key={m.id} className="chat-row flex max-w-full gap-3 sm:max-w-3xl">
                   <div
-                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-primary/40 bg-primary/20 text-xs font-semibold text-primary"
+                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary"
                     aria-label="Pitchside"
                     role="img"
                   >
                     P
                   </div>
-                  <div className="min-w-0 w-full flex-1 rounded-xl rounded-tl-sm border border-border bg-card p-3 text-sm leading-relaxed text-card-foreground sm:p-4">
+                  <div className="min-w-0 w-full flex-1 border-l border-l-primary/20 bg-card/30 py-2.5 pl-4 pr-3 text-sm leading-relaxed text-card-foreground sm:pr-4">
                     <MessageContent content={m.content} role={m.role} />
                   </div>
                 </li>
@@ -277,13 +275,14 @@ export function ChatThread({ chatId }: ChatThreadProps) {
             {pending && (
               <li className="chat-row flex max-w-full gap-3 sm:max-w-3xl">
                 <div
-                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-primary/40 bg-primary/20 text-xs font-semibold text-primary"
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary"
                   aria-label="Pitchside"
                   role="img"
                 >
                   P
                 </div>
-                <div className="rounded-xl rounded-tl-sm border border-border bg-card p-3 text-sm text-muted-foreground sm:p-4">
+                <div className="flex items-center gap-2 border-l border-l-primary/20 py-2.5 pl-4 text-sm text-muted-foreground">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
                   Analyzing…
                 </div>
               </li>

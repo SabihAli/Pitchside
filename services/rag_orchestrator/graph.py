@@ -426,6 +426,7 @@ def draft_node(state: GraphState) -> GraphState:
         tool_results=state.get("tool_results", []),
         run_logger=run_logger,
         iteration=iteration,
+        web_search_enabled=bool(state.get("web_search_enabled")),
     )
     draft = normalize_kb_miss_response(
         draft,

@@ -12,9 +12,13 @@ class Settings:
     def __init__(self) -> None:
         self.llm_provider = _env("LLM_PROVIDER", "local").lower()
         self.groq_api_key = _env("GROQ_API_KEY")
-        self.groq_max_retries = int(os.getenv("GROQ_MAX_RETRIES", "5"))
+        # Kept low on purpose: these calls sit in the synchronous request path
+        # of an interactive chat turn, so a rate-limited model must fail fast
+        # rather than blocking the user's response for minutes. Previously
+        # 5 retries x 60s cap meant up to 5 minutes of dead air on a single 429.
+        self.groq_max_retries = int(os.getenv("GROQ_MAX_RETRIES", "3"))
         self.groq_backoff_base = float(os.getenv("GROQ_BACKOFF_BASE", "1.5"))
-        self.groq_backoff_max_sec = float(os.getenv("GROQ_BACKOFF_MAX_SEC", "60"))
+        self.groq_backoff_max_sec = float(os.getenv("GROQ_BACKOFF_MAX_SEC", "12"))
         self.snapshot_max_tokens = int(os.getenv("SNAPSHOT_MAX_TOKENS", "300"))
         # Groq rejects oversized requests (HTTP 413). Keep prompts under safe limits.
         self.llm_max_input_tokens = int(os.getenv("LLM_MAX_INPUT_TOKENS", "12000"))
@@ -42,6 +46,40 @@ class Settings:
         self.groq_model_orchestrator = os.getenv(
             "GROQ_MODEL_ORCHESTRATOR", "openai/gpt-oss-20b"
         )
+        # Vision (image) calls need a model that actually accepts image
+        # content -- verified live on 2026-09-13 that every non-qwen model on
+        # this account (gpt-oss family, allam-2-7b, groq/compound*) hard-rejects
+        # multimodal input with 400 "content must be a string", so they can
+        # never be a vision fallback no matter how their rate limits look.
+        # qwen/qwen3.8-27b does accept images and has its own independent
+        # per-minute quota bucket from groq_model_main (qwen3.6-27b), so it's
+        # a real fallback when the primary vision model is rate-limited.
+        self.groq_model_vision_fallback = os.getenv(
+            "GROQ_MODEL_VISION_FALLBACK", "qwen/qwen3.8-27b"
+        )
+        # Extra models Groq serves that aren't any role's primary pick. On a
+        # 429, the primary model's bucket is exhausted, so we hop to one of
+        # these (or another role's primary) rather than sleeping on a bucket
+        # we already know is empty -- each model has its own independent
+        # per-minute quota on Groq's side.
+        #
+        # llama-3.3-70b-versatile, qwen/qwen3-32b, and moonshotai/kimi-k2-instruct
+        # were retired by Groq (404 Not Found on every request as of 2026-09)
+        # and were silently eating every fallback slot, so tool_planner/judge
+        # calls had zero working candidates once the primary model hit a 429.
+        # qwen/qwen3.8-27b is live but already sits on a near-zero output-token
+        # quota on this account (429 on a one-word reply) -- not usable as a
+        # fallback. Verified against GET /openai/v1/models plus a live probe
+        # of each candidate on 2026-09-12; if these go stale too, re-check
+        # with `curl https://api.groq.com/openai/v1/models`.
+        self.groq_model_extra_pool = [
+            m.strip()
+            for m in os.getenv(
+                "GROQ_MODEL_EXTRA_POOL",
+                "openai/gpt-oss-safeguard-20b,allam-2-7b,groq/compound-mini",
+            ).split(",")
+            if m.strip()
+        ]
 
 
 settings = Settings()

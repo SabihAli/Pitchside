@@ -144,7 +144,7 @@ export function AppShell({ children, showMatchStatus = false }: AppShellProps) {
   const shell = (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
       <aside
-        className={`flex h-full shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 transition-[width] duration-200 ${
+        className={`flex h-full shrink-0 flex-col border-r border-sidebar-border/40 bg-sidebar p-4 transition-[width] duration-200 ${
           collapsed ? "sidebar-collapsed w-[88px]" : "w-[280px]"
         }`}
       >
@@ -169,7 +169,7 @@ export function AppShell({ children, showMatchStatus = false }: AppShellProps) {
           type="button"
           onClick={onKickoff}
           disabled={kickoffPending}
-          className="sidebar-cta kickoff-btn mb-6 flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 font-semibold disabled:opacity-70"
+          className="sidebar-cta kickoff-btn mb-6 flex items-center justify-center gap-2.5 rounded-lg px-4 py-2.5 text-sm font-semibold tracking-tight transition-transform active:scale-[0.98] disabled:opacity-70"
         >
           <SoccerBall size={22} weight="light" />
           <span className="sidebar-text">

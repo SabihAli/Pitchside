@@ -17,6 +17,14 @@ logger = logging.getLogger(__name__)
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
+# Marker prefix on invoke_llm()'s synthesized message when every Groq
+# candidate failed (rate limit, outage, etc.) and no real completion came
+# back. Callers that treat invoke_llm's return value as real model output
+# (e.g. a vision description fed into a downstream classifier) must check
+# for this prefix first -- otherwise an infra failure gets silently
+# laundered through as if the model had actually analyzed the input.
+LLM_CALL_FAILED_PREFIX = "I couldn't generate a response"
+
 # Domain metrics: how many LLM calls, of what outcome, and how long they
 # take, broken down by provider/model/pipeline-step ("role", e.g.
 # "drafter", "judge", "rewriter"). Scraped via the futbot_common
@@ -48,9 +56,89 @@ GROQ_MODEL_MAP: dict[str, str] = {
 
 GROQ_THINKING_ROLES = {"judge"}
 
+# Every model in play across all roles, plus whatever extra models config
+# adds -- this is the full pool a role can hop to when its own primary
+# model's rate-limit bucket is exhausted. Order is deduped but otherwise
+# arbitrary; _groq_model_candidates() rotates the starting point per role so
+# concurrent roles don't all pile onto the same fallback first.
+GROQ_ALL_MODELS: list[str] = list(
+    dict.fromkeys(
+        [
+            *GROQ_MODEL_MAP.values(),
+            *settings.groq_model_extra_pool,
+            settings.groq_model_vision_fallback,
+        ]
+    )
+)
+
+# Models on this account that actually accept image content. Verified live on
+# 2026-09-13: every non-qwen model here (gpt-oss family, allam-2-7b,
+# groq/compound*) hard-rejects multimodal input with 400 "content must be a
+# string" regardless of rate-limit state, so they can never stand in for a
+# vision call no matter what the generic 429-fallback pool contains.
+GROQ_VISION_MODELS: set[str] = {
+    settings.groq_model_main,
+    settings.groq_model_vision_fallback,
+}
+
+
+def _groq_model_candidates(role: str) -> list[str]:
+    """Primary model for `role` first, then every other known model as a
+    429 fallback -- ordered by a role-dependent rotation so different roles
+    don't all reach for the same fallback model at once and just shift the
+    bottleneck rather than spreading it."""
+    primary = GROQ_MODEL_MAP.get(role, settings.groq_model_main)
+    others = [m for m in GROQ_ALL_MODELS if m != primary]
+    if others:
+        offset = hash(role) % len(others)
+        others = others[offset:] + others[:offset]
+    return [primary, *others]
+
 MODEL_ORCHESTRATOR = settings.model_orchestrator
 MODEL_GENERATOR = settings.model_generator
 MODEL_DECISION = settings.model_decision
+
+
+def _parse_groq_duration(value: str | None) -> float | None:
+    """Parse Groq's rate-limit reset headers, e.g. '4.372s' or '1m26.4s'."""
+    if not value:
+        return None
+    match = re.match(r"^(?:(\d+)m)?(\d+(?:\.\d+)?)s$", value.strip())
+    if not match:
+        return None
+    minutes = float(match.group(1)) if match.group(1) else 0.0
+    seconds = float(match.group(2))
+    return minutes * 60 + seconds
+
+
+def _groq_retry_wait(resp: requests.Response, attempt: int, backoff_base: float) -> float:
+    """
+    Figure out how long to actually wait after a Groq 429.
+
+    Groq's 429s are usually a per-minute token-bucket limit, not a short
+    burst limit -- `Retry-After` is often absent, but `x-ratelimit-reset-tokens`
+    / `x-ratelimit-reset-requests` tell you precisely when the bucket clears
+    (e.g. "4.372s", "1m26.4s"). Prefer those over a blind exponential guess,
+    which is far too short to clear a minute-long token bucket.
+    """
+    retry_after = resp.headers.get("retry-after")
+    if retry_after:
+        try:
+            return float(retry_after)
+        except ValueError:
+            pass
+
+    reset_candidates = [
+        _parse_groq_duration(resp.headers.get("x-ratelimit-reset-tokens")),
+        _parse_groq_duration(resp.headers.get("x-ratelimit-reset-requests")),
+    ]
+    reset_candidates = [c for c in reset_candidates if c is not None]
+    if reset_candidates:
+        # Whichever bucket (tokens or requests) is exhausted is the one
+        # gating us; its reset governs how long we must wait.
+        return max(reset_candidates)
+
+    return backoff_base**attempt
 
 
 def _strip_think_tags(text: str) -> str:
@@ -92,7 +180,16 @@ def _call_groq(
             "Add it to your .env file or environment when using LLM_PROVIDER=groq."
         )
 
-    model = GROQ_MODEL_MAP.get(role, settings.groq_model_main)
+    candidates = _groq_model_candidates(role)
+    if image is not None:
+        # Most of the fallback pool hard-rejects image content outright
+        # (verified live -- see GROQ_VISION_MODELS), so hopping to an
+        # arbitrary text-only model would just trade a 429 for a guaranteed
+        # 400. Restrict to the known vision-capable models instead of
+        # collapsing to a single one, so a rate-limited primary still has a
+        # real (separately-quota'd) fallback to hop to.
+        candidates = [c for c in candidates if c in GROQ_VISION_MODELS] or [candidates[0]]
+    model = candidates[0]
     thinking = role in GROQ_THINKING_ROLES
 
     fitted_user = fit_llm_input(
@@ -144,89 +241,118 @@ def _call_groq(
         settings.llm_max_input_tokens - count_tokens(system_prompt) - 128,
     )
 
-    for attempt in range(settings.groq_max_retries):
-        try:
-            resp = requests.post(
-                GROQ_API_URL, json=payload, headers=headers, timeout=120
-            )
-            status_code = resp.status_code
+    for cycle in range(settings.groq_max_retries):
+        cycle_wait: float | None = None
 
-            if resp.status_code == 413:
-                shrink_attempts += 1
-                current_user = payload["messages"][1]["content"]
-                target = max(256, user_token_budget // (2**shrink_attempts))
-                payload["messages"][1]["content"] = _shrink_groq_user_content(
-                    current_user,
-                    target,
+        for candidate_model in candidates:
+            payload["model"] = candidate_model
+            try:
+                resp = requests.post(
+                    GROQ_API_URL, json=payload, headers=headers, timeout=120
                 )
-                logger.warning(
-                    "Groq 413 on %s; shrinking user prompt to ~%s tokens (attempt %s).",
-                    role,
-                    target,
-                    shrink_attempts,
-                )
-                if shrink_attempts >= 8:
-                    latency_ms = int((_time.monotonic() - t0) * 1000)
-                    return (
-                        "",
-                        (
-                            "The model request was too large even after shrinking. "
-                            "Try a shorter question or reduce retrieved context."
-                        ),
-                        status_code,
-                        latency_ms,
+                status_code = resp.status_code
+
+                if resp.status_code == 413:
+                    shrink_attempts += 1
+                    current_user = payload["messages"][1]["content"]
+                    target = max(256, user_token_budget // (2**shrink_attempts))
+                    payload["messages"][1]["content"] = _shrink_groq_user_content(
+                        current_user,
+                        target,
                     )
-                continue
+                    logger.warning(
+                        "Groq 413 on %s (%s); shrinking user prompt to ~%s tokens (attempt %s).",
+                        role,
+                        candidate_model,
+                        target,
+                        shrink_attempts,
+                    )
+                    if shrink_attempts >= 8:
+                        latency_ms = int((_time.monotonic() - t0) * 1000)
+                        return (
+                            "",
+                            (
+                                "The model request was too large even after shrinking. "
+                                "Try a shorter question or reduce retrieved context."
+                            ),
+                            status_code,
+                            latency_ms,
+                        )
+                    continue
 
-            if resp.status_code == 429:
-                retry_after = float(
-                    resp.headers.get("retry-after", settings.groq_backoff_base**attempt)
-                )
-                wait = min(
-                    retry_after + random.uniform(0, 0.5),
-                    settings.groq_backoff_max_sec,
-                )
-                logger.warning(
-                    "Groq 429 on attempt %s/%s. Waiting %.2fs.",
-                    attempt + 1,
-                    settings.groq_max_retries,
-                    wait,
-                )
-                _time.sleep(wait)
-                continue
+                if resp.status_code == 429:
+                    # Each Groq model has its own independent rate-limit
+                    # bucket, so a 429 on this one says nothing about the
+                    # next candidate -- hop immediately instead of sleeping.
+                    cycle_wait = _groq_retry_wait(resp, cycle, settings.groq_backoff_base)
+                    logger.warning(
+                        "Groq 429 on %s (%s), cycle %s/%s (reset-tokens=%s, "
+                        "reset-requests=%s, retry-after=%s). Trying next model.",
+                        role,
+                        candidate_model,
+                        cycle + 1,
+                        settings.groq_max_retries,
+                        resp.headers.get("x-ratelimit-reset-tokens"),
+                        resp.headers.get("x-ratelimit-reset-requests"),
+                        resp.headers.get("retry-after"),
+                    )
+                    continue
 
-            if resp.status_code in {502, 503, 504}:
-                wait = min(
-                    settings.groq_backoff_base**attempt + random.uniform(0, 0.5),
-                    settings.groq_backoff_max_sec,
-                )
-                logger.warning(
-                    "Groq %s on attempt %s/%s. Waiting %.2fs.",
-                    resp.status_code,
-                    attempt + 1,
-                    settings.groq_max_retries,
-                    wait,
-                )
-                _time.sleep(wait)
-                continue
+                if resp.status_code in {502, 503, 504}:
+                    logger.warning(
+                        "Groq %s on %s (%s), cycle %s/%s. Trying next model.",
+                        resp.status_code,
+                        role,
+                        candidate_model,
+                        cycle + 1,
+                        settings.groq_max_retries,
+                    )
+                    continue
 
-            resp.raise_for_status()
-            raw = resp.json().get("choices", [{}])[0].get("message", {}).get("content", "").strip()
-            clean = _strip_think_tags(raw)
-            latency_ms = int((_time.monotonic() - t0) * 1000)
-            return raw, clean, status_code, latency_ms
+                if resp.status_code >= 400:
+                    # raise_for_status()'s exception text is just "400 Client
+                    # Error: Bad Request for url: ..." -- it drops Groq's JSON
+                    # error body, which is the only place that says *why*
+                    # (decommissioned model, unsupported param, real quota
+                    # exhaustion, etc.). Log it before raising so failures are
+                    # diagnosable without re-running the request by hand.
+                    logger.error(
+                        "Groq %s on %s (%s): %s",
+                        resp.status_code,
+                        role,
+                        candidate_model,
+                        resp.text[:500],
+                    )
 
-        except requests.RequestException as e:
-            logger.error("Groq API request error (attempt %s): %s", attempt + 1, e)
-            if attempt == settings.groq_max_retries - 1:
+                resp.raise_for_status()
+                raw = resp.json().get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+                clean = _strip_think_tags(raw)
                 latency_ms = int((_time.monotonic() - t0) * 1000)
                 return raw, clean, status_code, latency_ms
-            _time.sleep(
-                min(
-                    settings.groq_backoff_base**attempt + random.uniform(0, 0.5),
-                    settings.groq_backoff_max_sec,
+
+            except requests.RequestException as e:
+                logger.error(
+                    "Groq API request error on %s (%s): %s", role, candidate_model, e
                 )
-            )
+                continue
+
+        # Every candidate model failed (rate-limited, transient error, or
+        # network error) in this cycle -- no fresh bucket left to hop to, so
+        # back off for real before the next cycle.
+        if cycle == settings.groq_max_retries - 1:
+            break
+        wait = min(
+            (cycle_wait if cycle_wait is not None else settings.groq_backoff_base**cycle)
+            + random.uniform(0, 0.5),
+            settings.groq_backoff_max_sec,
+        )
+        logger.warning(
+            "All %s Groq candidate models failed for %s; waiting %.2fs before retrying.",
+            len(candidates),
+            role,
+            wait,
+        )
+        _time.sleep(wait)
 
     latency_ms = int((_time.monotonic() - t0) * 1000)
     return raw, clean, status_code, latency_ms
@@ -326,7 +452,7 @@ def invoke_llm(
         log_model_name = groq_model
         if not clean.strip():
             clean = (
-                "I couldn't generate a response — the Groq API returned an error "
+                f"{LLM_CALL_FAILED_PREFIX} — the Groq API returned an error "
                 f"(HTTP {status_code or 'unknown'}). Verify GROQ_API_KEY and that "
                 f"model `{groq_model}` is available on your Groq account."
             )

@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import datetime, timezone
 from typing import Any
 
 from services.llm_gateway.config import settings
@@ -16,6 +17,13 @@ from services.llm_gateway.token_budget import (
     fit_messages_for_prompt,
     trim_preserve_edges,
 )
+
+
+def current_date_str() -> str:
+    """Real-world current date (UTC), injected into prompts so the model can
+    resolve relative time expressions instead of relying on its training
+    cutoff or a stale hardcoded date."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
 def build_context_text(
@@ -83,6 +91,7 @@ class QueryRewriter:
         )
         system_prompt, user_template = get_prompt_parts("REWRITER")
         user_content = user_template.format(
+            current_date=current_date_str(),
             snapshot=fitted_snapshot,
             history_text=history_text,
             query=query,
@@ -101,7 +110,10 @@ class QueryRewriter:
 class Orchestrator:
     def classify(self, query: str, run_logger=None, iteration: int = 0) -> str:
         system_prompt, user_template = get_prompt_parts("ORCHESTRATOR")
-        user_content = user_template.format(query=query)
+        user_content = user_template.format(
+            current_date=current_date_str(),
+            query=query,
+        )
         classification = invoke_llm(
             user_content,
             model_name=MODEL_ORCHESTRATOR,
@@ -162,10 +174,17 @@ class DraftGenerator:
         tool_results: list[dict[str, Any]] | None = None,
         run_logger=None,
         iteration: int = 0,
+        web_search_enabled: bool = False,
     ) -> str:
         context_text = build_context_text(chunks, tool_results)
         system_prompt, user_template = get_prompt_parts("DRAFT_GENERATOR")
-        user_content = user_template.format(context_text=context_text, query=query)
+        web_search_status = "ENABLED" if web_search_enabled else "DISABLED"
+        user_content = user_template.format(
+            current_date=current_date_str(),
+            context_text=context_text,
+            query=query,
+            web_search_status=web_search_status,
+        )
         return invoke_llm(
             user_content,
             model_name=MODEL_GENERATOR,

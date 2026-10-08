@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Globe, PaperPlaneRight, SoccerBall } from "@/components/icons";
+import { Globe, PaperPlaneRight } from "@/components/icons";
 
 type ChatComposerProps = {
   disabled?: boolean;
@@ -36,13 +36,15 @@ export function ChatComposer({
         <button
           type="button"
           aria-pressed={webSearch}
-          title="Web search"
+          title={webSearch ? "Web search on — click to disable" : "Web search off — click to enable"}
           onClick={() => setWebSearch((v) => !v)}
-          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
-            webSearch ? "text-primary" : "text-muted-foreground hover:text-primary"
+          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border transition-colors ${
+            webSearch
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          <SoccerBall size={20} weight="light" />
+          <Globe size={19} weight={webSearch ? "fill" : "light"} />
         </button>
         <input
           className="mx-2 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:opacity-60"
@@ -60,23 +62,15 @@ export function ChatComposer({
           <PaperPlaneRight size={20} weight="light" />
         </button>
       </form>
-      <div className="relative mt-3 flex min-h-[24px] items-center justify-end">
-        <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-center font-mono text-[11px] text-muted-foreground/50">
+      <div className="mt-3 flex min-h-[24px] items-center justify-center gap-2">
+        <p className="font-mono text-[11px] text-muted-foreground/50">
           AI analysis can make mistakes. Verify critical match data.
         </p>
-        <button
-          type="button"
-          aria-pressed={webSearch}
-          onClick={() => setWebSearch((v) => !v)}
-          className={`relative z-10 inline-flex shrink-0 items-center gap-1 rounded border px-2 py-1 font-mono text-[11px] leading-none transition-colors ${
-            webSearch
-              ? "border-primary/40 bg-primary/15 text-primary"
-              : "border-border bg-muted/20 text-muted-foreground hover:bg-muted/30"
-          }`}
-        >
-          <Globe size={14} weight="light" className="text-primary" />
-          <span>Web search</span>
-        </button>
+        {webSearch && (
+          <span className="inline-flex items-center gap-1 font-mono text-[11px] text-primary">
+            · Web search on
+          </span>
+        )}
       </div>
     </div>
   );

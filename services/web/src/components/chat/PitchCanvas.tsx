@@ -20,17 +20,17 @@ import { useEffect, useRef } from "react";
 type Player = { x: number; y: number; vx: number; vy: number };
 
 const INITIAL_PLAYERS: Player[] = [
-  { x: 0.18, y: 0.28, vx: 0.00012, vy: 0.00008 },
-  { x: 0.28, y: 0.48, vx: -0.0001, vy: 0.0001 },
-  { x: 0.22, y: 0.68, vx: 0.00009, vy: -0.00007 },
-  { x: 0.38, y: 0.35, vx: 0.00008, vy: -0.00009 },
-  { x: 0.42, y: 0.58, vx: -0.00011, vy: -0.00007 },
-  { x: 0.48, y: 0.78, vx: 0.00009, vy: 0.00006 },
-  { x: 0.55, y: 0.3, vx: -0.00008, vy: 0.0001 },
-  { x: 0.58, y: 0.52, vx: 0.0001, vy: -0.00008 },
-  { x: 0.68, y: 0.4, vx: -0.00009, vy: 0.00007 },
-  { x: 0.72, y: 0.62, vx: 0.00011, vy: -0.00006 },
-  { x: 0.78, y: 0.48, vx: -0.00007, vy: 0.00009 },
+  { x: 0.18, y: 0.28, vx: 0.00004, vy: 0.000027 },
+  { x: 0.28, y: 0.48, vx: -0.000033, vy: 0.000033 },
+  { x: 0.22, y: 0.68, vx: 0.00003, vy: -0.000023 },
+  { x: 0.38, y: 0.35, vx: 0.000027, vy: -0.00003 },
+  { x: 0.42, y: 0.58, vx: -0.000037, vy: -0.000023 },
+  { x: 0.48, y: 0.78, vx: 0.00003, vy: 0.00002 },
+  { x: 0.55, y: 0.3, vx: -0.000027, vy: 0.000033 },
+  { x: 0.58, y: 0.52, vx: 0.000033, vy: -0.000027 },
+  { x: 0.68, y: 0.4, vx: -0.00003, vy: 0.000023 },
+  { x: 0.72, y: 0.62, vx: 0.000037, vy: -0.00002 },
+  { x: 0.78, y: 0.48, vx: -0.000023, vy: 0.00003 },
 ];
 
 export function PitchCanvas() {
@@ -83,14 +83,14 @@ export function PitchCanvas() {
         if (p.y < 0.18 || p.y > 0.82) p.vy *= -1;
       }
 
-      if (!passing && Math.random() < 0.008) {
+      if (!passing && Math.random() < 0.004) {
         passing = true;
         passTo = pickReceiver(carrier);
         passT = 0;
       }
 
       if (passing) {
-        passT += 0.009;
+        passT += 0.004;
         const a = players[carrier];
         const b = players[passTo];
         const t = Math.min(1, passT);

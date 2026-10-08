@@ -36,6 +36,22 @@ class IngestionProviderError(IngestionError):
         )
 
 
+class VisionUnavailableError(IngestionError):
+    """Raised when the vision model call itself failed (rate limit, outage,
+    etc.), as opposed to the model successfully describing non-football
+    content. Keeping this distinct from FootballRelevanceError matters: an
+    infra failure must never be laundered through the relevance classifier
+    and reported to the user as "not football-related"."""
+
+    def __init__(self, filename: str, detail: str):
+        self.filename = filename
+        super().__init__(
+            f"Couldn't analyze the image in '{filename}' -- the vision model "
+            f"is temporarily unavailable ({detail}). Please try uploading again "
+            "in a moment."
+        )
+
+
 class DuplicateUploadError(IngestionError):
     def __init__(self, filename: str, existing_ingestion_id: int, existing_filename: str):
         self.filename = filename

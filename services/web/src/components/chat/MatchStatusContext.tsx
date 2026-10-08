@@ -149,12 +149,23 @@ export function stageLabel(stage: string): string {
   return map[stage] || stage.replace(/_/g, " ");
 }
 
+function stageRank(stage: string): number {
+  // Dynamic per-tool stages ("tool:mcp:livescore:search", "tool:web_search", …)
+  // aren't in STAGE_ORDER, but the backend actually runs and reports them
+  // alongside retrieval — both happen inside external_context_node, before
+  // drafting. Rank them there instead of falling into the "unknown" bucket,
+  // which used to sort them after every other stage (even "responding").
+  if (stage.startsWith("tool:")) {
+    return STAGE_ORDER.indexOf("retrieving");
+  }
+  const idx = STAGE_ORDER.indexOf(stage);
+  return idx === -1 ? 1000 : idx;
+}
+
 export function sortStages(stages: PipelineStage[]): PipelineStage[] {
   return [...stages].sort((a, b) => {
-    const ai = STAGE_ORDER.indexOf(a.stage);
-    const bi = STAGE_ORDER.indexOf(b.stage);
-    const aRank = ai === -1 ? 1000 : ai;
-    const bRank = bi === -1 ? 1000 : bi;
+    const aRank = stageRank(a.stage);
+    const bRank = stageRank(b.stage);
     if (aRank !== bRank) return aRank - bRank;
     return a.stage.localeCompare(b.stage);
   });

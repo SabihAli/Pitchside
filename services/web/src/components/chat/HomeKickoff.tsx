@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useMatchStatus } from "@/components/chat/MatchStatusContext";
 import { ChatComposer } from "@/components/chat/ChatComposer";
+import { PitchCanvas } from "@/components/chat/PitchCanvas";
 import { formatApiError } from "@/lib/api";
 import { createChat, isLoginRequired, postMessage } from "@/lib/chat-api";
+import { deriveChatTitle } from "@/lib/chat-title";
 import { getAccessToken, setAnonChatId } from "@/lib/auth";
 import { pipelineWsUrl } from "@/lib/ws";
 
@@ -19,9 +21,7 @@ export function HomeKickoff() {
     setError(null);
     setPending(true);
     try {
-      const chat = await createChat(
-        content.length > 48 ? `${content.slice(0, 48)}…` : content,
-      );
+      const chat = await createChat(deriveChatTitle(content));
       if (!getAccessToken()) {
         setAnonChatId(chat.id);
       }
@@ -54,8 +54,9 @@ export function HomeKickoff() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-background">
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+    <div className="relative flex h-full flex-col bg-background pitch-pattern">
+      <PitchCanvas />
+      <div className="pitch-content flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
         <h1 className="font-serif text-3xl font-bold text-foreground">
           Ready for kickoff
         </h1>
@@ -66,7 +67,9 @@ export function HomeKickoff() {
           <pre className="whitespace-pre-wrap text-sm text-destructive">{error}</pre>
         )}
       </div>
-      <ChatComposer pending={pending} onSend={onSend} />
+      <div className="pitch-content">
+        <ChatComposer pending={pending} onSend={onSend} />
+      </div>
     </div>
   );
 }

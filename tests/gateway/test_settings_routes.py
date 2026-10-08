@@ -100,3 +100,13 @@ async def test_put_rejects_unknown_or_multiline_values(gateway_client):
         )
     assert unknown.status_code == 422
     assert multiline.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_api_keys_disabled_on_hosted_deployments(env_path, monkeypatch):
+    monkeypatch.setattr(settings, "settings_api_keys_enabled", False)
+    app = create_app()
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/settings/api-keys", headers=auth_headers())
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "SETTINGS_MANAGED_EXTERNALLY"

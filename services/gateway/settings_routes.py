@@ -5,13 +5,31 @@ import os
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from futbot_common.errors import AuthError
 from futbot_common.responses import DataResponse
 from services.gateway.config import settings
 
-router = APIRouter(prefix="/settings", tags=["settings"])
+
+
+def _require_env_file_settings() -> None:
+    # Hosted deployments (Vercel) keep keys in the platform's env vars: the
+    # filesystem is read-only, and end users must not read server secrets.
+    if not settings.settings_api_keys_enabled:
+        raise AuthError(
+            "SETTINGS_MANAGED_EXTERNALLY",
+            "API keys are managed by the deployment, not from the app.",
+            403,
+        )
+
+
+router = APIRouter(
+    prefix="/settings",
+    tags=["settings"],
+    dependencies=[Depends(_require_env_file_settings)],
+)
 
 ALLOWED_API_KEYS = (
     "GROQ_API_KEY",

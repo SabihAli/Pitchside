@@ -1,0 +1,42 @@
+# Vercel deployment of the Python backend (all API services in one function).
+# Docker images install requirements-docker.txt instead; this list is the
+# slimmer runtime set: no ingestion/OCR libs, no local embedding model,
+# no OpenTelemetry exporters, no test tooling. See docs/DEPLOY_VERCEL.md.
+[project]
+name = "pitchside-api"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi==0.111.0",
+    "pydantic==2.8.2",
+    "email-validator>=2.1.0",
+    "python-multipart>=0.0.9",
+    "httpx==0.27.2",
+    "requests==2.31.0",
+    "python-dotenv==1.0.0",
+    "itsdangerous>=2.1.0",
+    "langgraph==0.0.60",
+    "langchain-core==0.2.1",
+    "tiktoken==0.7.0",
+    "nltk==3.8.1",
+    "rank-bm25==0.2.2",
+    "numpy<2.0",
+    "qdrant-client>=1.12.0",
+    "groq>=0.11.0",
+    "sqlalchemy[asyncio]>=2.0.30",
+    "asyncpg>=0.29.0",
+    "alembic>=1.13.0",
+    "bcrypt>=4.1.0",
+    "pyotp>=2.9.0",
+    "PyJWT>=2.8.0",
+    "authlib>=1.3.0",
+    "redis>=5.0.0",
+    "minio>=7.2.0",
+    "mcp>=1.6.0",
+    "prometheus-client>=0.20.0",
+    "prometheus-fastapi-instrumentator==6.1.0",
+    "opentelemetry-api==1.42.1",
+]
+
+[tool.vercel]
+entrypoint = "vercel_app:app"

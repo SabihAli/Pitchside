@@ -26,10 +26,10 @@ async def _save_pipeline_outcome(
     pipeline_result: dict,
     fallback_snapshot: str,
     fallback_turn_count: int,
-) -> None:
+) -> Message | None:
     chat = await load_chat_with_messages(db, chat_id)
     if not chat:
-        return
+        return None
 
     assistant_msg = Message(
         chat_id=chat.id,
@@ -46,6 +46,8 @@ async def _save_pipeline_outcome(
         "snapshot_turn_count", fallback_turn_count
     )
     await db.commit()
+    await db.refresh(assistant_msg)
+    return assistant_msg
 
 
 async def run_pipeline_for_chat(
@@ -54,13 +56,14 @@ async def run_pipeline_for_chat(
     user_id: str | None,
     query: str,
     web_search_enabled: bool,
-) -> None:
+) -> Message | None:
+    """Run the pipeline and persist the reply; returns the saved assistant message."""
     factory = get_session_factory()
     async with factory() as db:
         chat = await load_chat_with_messages(db, chat_id)
         if not chat:
             logger.warning("Pipeline skipped: chat %s not found", chat_id)
-            return
+            return None
 
         snap = chat.snapshot.snapshot_text if chat.snapshot else ""
         turn_count = chat.snapshot.snapshot_turn_count if chat.snapshot else 0
@@ -109,7 +112,7 @@ async def run_pipeline_for_chat(
             }
 
         try:
-            await _save_pipeline_outcome(
+            return await _save_pipeline_outcome(
                 db,
                 chat_id=chat_id,
                 content=content,
@@ -120,3 +123,4 @@ async def run_pipeline_for_chat(
         except Exception:
             await db.rollback()
             logger.exception("Failed to persist pipeline result for chat %s", chat_id)
+            return None

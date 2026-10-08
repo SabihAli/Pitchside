@@ -1,14 +1,11 @@
-import asyncio
 import json
 import logging
 import os
 from typing import Callable
-from urllib.parse import urlparse
 
 import httpx
-import websockets
-from fastapi import FastAPI, Query, Request, Response, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Query, Request, Response
+from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.background import BackgroundTask
 
 from futbot_common import (
@@ -62,6 +59,9 @@ async def _proxy(request: Request, upstream_base: str) -> Response:
 
     headers = dict(request.headers)
     headers.pop("host", None)
+    # Identity comes only from the verified JWT below -- never trust a
+    # client-supplied X-User-ID, which downstream services rely on.
+    headers.pop("x-user-id", None)
     correlation_id = request.headers.get(CORRELATION_ID_HEADER)
     if correlation_id:
         headers[CORRELATION_ID_HEADER] = correlation_id
@@ -144,33 +144,37 @@ def create_app() -> FastAPI:
             "ui": "Pitchside web service (:3000)",
         }
 
-    @app.websocket("/ws/pipeline")
-    async def ws_pipeline_proxy(
-        websocket: WebSocket, session_id: str = Query(...)
-    ) -> None:
-        await websocket.accept()
-        parsed = urlparse(settings.orchestrator_service_url)
-        scheme = "wss" if parsed.scheme == "https" else "ws"
-        host = parsed.netloc or parsed.path
-        upstream_url = f"{scheme}://{host}/ws/pipeline?session_id={session_id}"
+    @app.get("/events/pipeline")
+    async def pipeline_events_proxy(request: Request, session_id: str = Query(...)) -> Response:
+        """Relay the orchestrator's Server-Sent Events stream for one chat session."""
+        url = settings.orchestrator_service_url.rstrip("/") + "/pipeline/events"
+        headers = {"Accept": "text/event-stream"}
+        last_event_id = request.headers.get("last-event-id")
+        if last_event_id:
+            headers["Last-Event-ID"] = last_event_id
+        client = _get_client()
+        upstream_request = client.build_request(
+            "GET", url, params={"session_id": session_id}, headers=headers
+        )
         try:
-            async with websockets.connect(upstream_url) as upstream:
-                async def relay_upstream() -> None:
-                    async for message in upstream:
-                        await websocket.send_text(message)
-
-                async def relay_client() -> None:
-                    try:
-                        while True:
-                            await websocket.receive_text()
-                    except WebSocketDisconnect:
-                        pass
-
-                await asyncio.gather(relay_upstream(), relay_client())
-        except WebSocketDisconnect:
-            pass
-        except Exception:
-            await websocket.close()
+            upstream = await client.send(upstream_request, stream=True)
+        except httpx.HTTPError:
+            logger.exception("Pipeline event stream unavailable")
+            return JSONResponse(
+                status_code=502,
+                content=ErrorResponse(
+                    error=ErrorBody(
+                        code="UPSTREAM_UNAVAILABLE", message="Event stream unavailable."
+                    )
+                ).model_dump(),
+            )
+        return StreamingResponse(
+            upstream.aiter_raw(),
+            status_code=upstream.status_code,
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"},
+            background=BackgroundTask(upstream.aclose),
+        )
 
     app.include_router(settings_router)
 

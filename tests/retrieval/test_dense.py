@@ -8,7 +8,7 @@ from services.retrieval.dense import DenseStore
 @pytest.fixture
 def dense_store(mocker):
     mocker.patch(
-        "services.retrieval.embeddings.embed_texts",
+        "services.retrieval.dense.embed_texts",
         side_effect=lambda texts: [[float(i)] * 384 for i, _ in enumerate(texts)],
     )
     client = QdrantClient(":memory:")

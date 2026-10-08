@@ -16,6 +16,7 @@ from services.chat.context_builder import (
     to_context_usage_schema,
     _messages_to_context,
 )
+from services.chat.config import settings
 from services.chat.db import get_db
 from services.chat.deps import assert_chat_access, optional_user_id, require_user_id
 from services.chat.models import Chat, Message
@@ -210,22 +211,33 @@ async def post_message(
     await db.refresh(msg)
 
     pipeline_async = False
+    assistant_message: MessageResponse | None = None
     if body.role == "user":
-        pipeline_async = True
-        background_tasks.add_task(
-            run_pipeline_for_chat,
+        pipeline_kwargs = dict(
             chat_id=chat.id,
             user_id=user_id,
             query=body.content,
             web_search_enabled=body.web_search_enabled,
         )
+        if settings.pipeline_inline:
+            reply = await run_pipeline_for_chat(**pipeline_kwargs)
+            if reply is not None:
+                assistant_message = MessageResponse(
+                    id=reply.id,
+                    role=reply.role,
+                    content=reply.content,
+                    created_at=reply.created_at,
+                )
+        else:
+            pipeline_async = True
+            background_tasks.add_task(run_pipeline_for_chat, **pipeline_kwargs)
 
     return DataResponse(
         data=PostMessageResponse(
             message=MessageResponse(
                 id=msg.id, role=msg.role, content=msg.content, created_at=msg.created_at
             ),
-            assistant_message=None,
+            assistant_message=assistant_message,
             context_usage=to_context_usage_schema(usage_raw),
             should_compress=usage_raw["should_compress"],
             compression_pending=chat.compression_pending,

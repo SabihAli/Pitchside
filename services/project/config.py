@@ -15,6 +15,11 @@ class Settings:
             "true",
             "yes",
         }
+        # Read-only knowledge base: uploads (user KB and project files) are
+        # rejected unless explicitly re-enabled.
+        self.knowledge_uploads_enabled = os.getenv(
+            "KNOWLEDGE_UPLOADS_ENABLED", "false"
+        ).lower() in {"1", "true", "yes"}
         self.ingestion_service_url = os.getenv(
             "INGESTION_SERVICE_URL", "http://localhost:8086"
         )

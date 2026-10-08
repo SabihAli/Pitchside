@@ -17,7 +17,7 @@
 
 ```bash
 pip install -e packages/futbot-common
-pip install -r requirements.txt
+pip install -r requirements-docker.txt
 
 docker compose -f docker-compose.services.yml up -d --build
 alembic upgrade head

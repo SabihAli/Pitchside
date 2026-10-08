@@ -85,3 +85,17 @@ async def test_knowledge_isolated_per_user(project_client, mocker):
         "/knowledge/files", headers={"X-User-ID": "user-b"}
     )
     assert listed_b.json()["data"] == []
+
+
+@pytest.mark.asyncio
+async def test_knowledge_upload_rejected_when_read_only(project_client, monkeypatch):
+    from services.project.config import settings
+
+    monkeypatch.setattr(settings, "knowledge_uploads_enabled", False)
+    response = await project_client.post(
+        "/knowledge/files",
+        files={"file": ("tactics.txt", b"press high", "text/plain")},
+        headers={"X-User-ID": "kb-user"},
+    )
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "KNOWLEDGE_READ_ONLY"

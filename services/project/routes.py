@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 from futbot_common.errors import AuthError
 from futbot_common.responses import DataResponse
 from services.project.db import get_db
-from services.project.deps import content_hash, require_user_id
+from services.project.deps import content_hash, require_uploads_enabled, require_user_id
 from services.project.ingestion_trigger import enqueue_ingestion
 from services.project.models import Project, ProjectFile, ProjectMemory
 from services.project.schemas import (
@@ -108,6 +108,7 @@ async def delete_project(
     "/{project_id}/files",
     response_model=DataResponse[ProjectFileResponse],
     status_code=201,
+    dependencies=[Depends(require_uploads_enabled)],
 )
 async def upload_file(
     project_id: str,

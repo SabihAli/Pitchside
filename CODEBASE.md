@@ -99,7 +99,7 @@ Overall the deployment setup (Compose + Kustomize + observability stack) is more
 - `tests/orchestrator/` tests `services/rag_orchestrator` — directory naming mismatch, not a functional gap.
 - Orphaned legacy tests at `tests/` root (`test_api.py`, `test_context.py`, `test_data_layer.py`, `test_graph.py`) test the dead `src/` monolith and should be deleted alongside it. `test_correlation_middleware.py` and `test_jwt_tokens.py` actually test `packages/futbot-common` and are still valid.
 - No TODO/FIXME/XXX markers found anywhere in `services/` or `src/` — either unusually clean code or such markers were deliberately scrubbed.
-- No per-service `requirements.txt`/`pyproject.toml`; all Python deps are centralized in the root `requirements.txt` (~45 packages — FastAPI/SQLAlchemy/alembic, LangGraph/LangChain, ChromaDB, rank-bm25, Groq, OpenTelemetry, MCP, Qdrant client, ingestion libs). `packages/futbot-common` is the only package with its own `pyproject.toml`, installed editable.
+- No per-service requirements files; Docker images install the root `requirements-docker.txt` (~45 packages — FastAPI/SQLAlchemy/alembic, LangGraph/LangChain, ChromaDB, rank-bm25, Groq, OpenTelemetry, MCP, Qdrant client, ingestion libs). `packages/futbot-common` is the only package with its own `pyproject.toml`, installed editable.
 
 ## 6. Outstanding / To-Do (from PHASE_8_PLAN.md success criteria, still unchecked)
 

@@ -9,7 +9,7 @@ import { formatApiError } from "@/lib/api";
 import { createChat, isLoginRequired, postMessage } from "@/lib/chat-api";
 import { deriveChatTitle } from "@/lib/chat-title";
 import { getAccessToken, setAnonChatId } from "@/lib/auth";
-import { pipelineWsUrl } from "@/lib/ws";
+import { openPipelineEvents } from "@/lib/pipeline-events";
 
 export function HomeKickoff() {
   const router = useRouter();
@@ -26,18 +26,11 @@ export function HomeKickoff() {
         setAnonChatId(chat.id);
       }
       setOptimisticStart();
-      const ws = new WebSocket(pipelineWsUrl(chat.id));
-      ws.onmessage = (ev) => {
-        try {
-          applyEvent(JSON.parse(ev.data) as Record<string, unknown>);
-        } catch {
-          // ignore
-        }
-      };
+      const events = openPipelineEvents(chat.id, applyEvent);
       try {
         await postMessage(chat.id, content, webSearchEnabled);
       } finally {
-        ws.close();
+        events.close();
       }
       router.push(`/chat/${chat.id}`);
     } catch (err) {

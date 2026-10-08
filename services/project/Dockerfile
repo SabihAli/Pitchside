@@ -2,9 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY requirements-docker.txt .
 COPY packages/futbot-common packages/futbot-common
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-docker.txt
 
 COPY services/project services/project
 COPY services/__init__.py services/__init__.py

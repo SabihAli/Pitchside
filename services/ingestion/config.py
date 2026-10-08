@@ -22,7 +22,7 @@ TABLE_CHUNK_ROWS = int(os.getenv("TABLE_CHUNK_ROWS", "10"))
 class IngestSettings:
     def __init__(self) -> None:
         self.ingest_image_delay_ms = int(os.getenv("INGEST_IMAGE_DELAY_MS", "500"))
-        self.ingest_ocr_enabled = os.getenv("INGEST_OCR_ENABLED", "true").lower() in {
+        self.ingest_ocr_enabled = os.getenv("INGEST_OCR_ENABLED", "false").lower() in {
             "1",
             "true",
             "yes",

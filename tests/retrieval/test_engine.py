@@ -9,7 +9,7 @@ from services.retrieval.engine import RetrievalEngine
 @pytest.fixture
 def engine(mocker):
     mocker.patch(
-        "services.retrieval.embeddings.embed_texts",
+        "services.retrieval.dense.embed_texts",
         side_effect=lambda texts: [[0.1] * 384 for _ in texts],
     )
     dense = DenseStore(QdrantClient(":memory:"), "hybrid_test")

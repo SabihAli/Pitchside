@@ -43,3 +43,23 @@ async def test_gateway_does_not_serve_legacy_static_assets(gateway_client):
         response = await client.get("/static/app.js")
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "NOT_FOUND"
+
+
+@pytest.mark.asyncio
+async def test_gateway_drops_client_supplied_user_id(gateway_client, monkeypatch):
+    from services.gateway import app as gw_app
+
+    captured = {}
+
+    class FakeClient:
+        async def request(self, method, url, headers, content):
+            captured["headers"] = headers
+            import httpx
+
+            return httpx.Response(200, json={"data": []})
+
+    monkeypatch.setattr(gw_app, "_get_client", lambda: FakeClient())
+    async with gateway_client as client:
+        await client.get("/tools", headers={"X-User-ID": "someone-else"})
+
+    assert "x-user-id" not in {k.lower() for k in captured["headers"]}

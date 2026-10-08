@@ -13,7 +13,7 @@ from services.retrieval.engine import RetrievalEngine
 def retrieval_client(mocker, tmp_path, monkeypatch):
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     mocker.patch(
-        "services.retrieval.embeddings.embed_texts",
+        "services.retrieval.dense.embed_texts",
         side_effect=lambda texts: [[0.1] * 384 for _ in texts],
     )
     mocker.patch("services.retrieval.app.run_startup_migration")

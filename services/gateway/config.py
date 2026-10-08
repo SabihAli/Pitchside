@@ -20,6 +20,9 @@ class Settings:
         self.jwt_secret = os.getenv("JWT_SECRET", "dev-secret-change-me")
         self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
         self.anon_message_limit = int(os.getenv("ANON_MESSAGE_LIMIT", "10"))
+        self.settings_api_keys_enabled = os.getenv(
+            "SETTINGS_API_KEYS_ENABLED", "false" if os.getenv("VERCEL") else "true"
+        ).lower() in {"1", "true", "yes"}
         repo_root = Path(__file__).resolve().parents[2]
         self.env_file = Path(os.getenv("ENV_FILE", str(repo_root / ".env")))
 

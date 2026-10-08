@@ -1,13 +1,17 @@
 import asyncio
-import queue
+import json
+import os
+import time
+from typing import AsyncIterator
 
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Header, Query, Request
+from fastapi.responses import StreamingResponse
 
 from futbot_common.responses import DataResponse
 from services.rag_orchestrator.pipeline_events import (
-    clear_session_events,
     emit_event,
-    register_session,
+    read_events,
+    resolve_start_id,
 )
 from services.rag_orchestrator.schemas import PipelineRunRequest, PipelineRunResponse
 
@@ -22,8 +26,6 @@ def _run_pipeline(**kwargs):
 
 @router.post("/pipeline/run", response_model=DataResponse[PipelineRunResponse])
 def pipeline_run(body: PipelineRunRequest) -> DataResponse[PipelineRunResponse]:
-    register_session(body.session_id)
-    clear_session_events(body.session_id)
     emit_event(body.session_id, {"type": "pipeline_start", "query": body.query})
 
     try:
@@ -50,18 +52,41 @@ def pipeline_run(body: PipelineRunRequest) -> DataResponse[PipelineRunResponse]:
     return DataResponse(data=PipelineRunResponse(**result))
 
 
-@router.websocket("/ws/pipeline")
-async def pipeline_websocket(websocket: WebSocket, session_id: str = Query(...)):
-    await websocket.accept()
-    event_queue = register_session(session_id)
-    await websocket.send_json({"type": "connected", "session_id": session_id})
+# Each SSE response ends after this long; EventSource reconnects with
+# Last-Event-ID and resumes. Keep it below the platform's function timeout.
+_SSE_MAX_SECONDS = float(os.getenv("SSE_MAX_SECONDS", "240"))
+_SSE_POLL_MS = 15000
 
-    try:
-        while True:
-            try:
-                event = await asyncio.to_thread(event_queue.get, True, 30.0)
-                await websocket.send_json(event)
-            except queue.Empty:
-                await websocket.send_json({"type": "ping"})
-    except WebSocketDisconnect:
-        pass
+
+def _sse(event: dict, event_id: str | None = None) -> str:
+    head = f"id: {event_id}\n" if event_id else ""
+    return f"{head}data: {json.dumps(event)}\n\n"
+
+
+@router.get("/pipeline/events")
+async def pipeline_events(
+    request: Request,
+    session_id: str = Query(...),
+    last_event_id: str | None = Header(default=None),
+) -> StreamingResponse:
+    async def stream() -> AsyncIterator[str]:
+        cursor = await asyncio.to_thread(resolve_start_id, session_id, last_event_id)
+        yield "retry: 2000\n"
+        yield _sse({"type": "connected", "session_id": session_id})
+        deadline = time.monotonic() + _SSE_MAX_SECONDS
+        while time.monotonic() < deadline:
+            if await request.is_disconnected():
+                return
+            rows = await asyncio.to_thread(read_events, session_id, cursor, _SSE_POLL_MS)
+            if not rows:
+                yield ": ping\n\n"
+                continue
+            for event_id, event in rows:
+                cursor = event_id
+                yield _sse(event, event_id)
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"},
+    )

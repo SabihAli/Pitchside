@@ -4,9 +4,9 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY requirements-docker.txt .
 COPY packages/futbot-common packages/futbot-common
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-docker.txt
 
 COPY services/tools services/tools
 COPY services/__init__.py services/__init__.py

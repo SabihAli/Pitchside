@@ -27,7 +27,7 @@ import {
   postMessage,
   type ChatMessage,
 } from "@/lib/chat-api";
-import { pipelineWsUrl } from "@/lib/ws";
+import { openPipelineEvents } from "@/lib/pipeline-events";
 
 type ChatThreadProps = {
   chatId: string;
@@ -52,7 +52,7 @@ export function ChatThread({ chatId }: ChatThreadProps) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const wsRef = useRef<WebSocket | null>(null);
+  const eventsRef = useRef<EventSource | null>(null);
   const assistantIdsRef = useRef<Set<string>>(new Set());
 
   const finishPipeline = useCallback(
@@ -90,28 +90,30 @@ export function ChatThread({ chatId }: ChatThreadProps) {
     router.push(`${pathname}?${params.toString()}`);
   }, [pathname, router, searchParams]);
 
-  const ensureWs = useCallback(() => {
-    if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) {
-      return wsRef.current;
+  const closeEvents = useCallback(() => {
+    eventsRef.current?.close();
+    eventsRef.current = null;
+  }, []);
+
+  const ensureEvents = useCallback(() => {
+    if (eventsRef.current && eventsRef.current.readyState !== EventSource.CLOSED) {
+      return eventsRef.current;
     }
-    const ws = new WebSocket(pipelineWsUrl(chatId));
-    ws.onmessage = (ev) => {
-      try {
-        const data = JSON.parse(ev.data) as Record<string, unknown>;
-        applyEvent(data);
-        if (data.type === "pipeline_complete" && typeof data.reply === "string") {
-          void finishPipeline();
-        }
-        if (data.type === "pipeline_error" && typeof data.message === "string") {
-          void finishPipeline(data.message);
-        }
-      } catch {
-        // ignore malformed frames
+    const source = openPipelineEvents(chatId, (data) => {
+      applyEvent(data);
+      // Close once the run ends so an idle thread holds no open stream.
+      if (data.type === "pipeline_complete" && typeof data.reply === "string") {
+        closeEvents();
+        void finishPipeline();
       }
-    };
-    wsRef.current = ws;
-    return ws;
-  }, [applyEvent, chatId, finishPipeline]);
+      if (data.type === "pipeline_error" && typeof data.message === "string") {
+        closeEvents();
+        void finishPipeline(data.message);
+      }
+    });
+    eventsRef.current = source;
+    return source;
+  }, [applyEvent, chatId, closeEvents, finishPipeline]);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,7 +135,7 @@ export function ChatThread({ chatId }: ChatThreadProps) {
           if (isPipelineInFlight(msgs)) {
             setPending(true);
             setRunning(true);
-            ensureWs();
+            ensureEvents();
           }
         } else if (chatResult.status === "rejected") {
           throw chatResult.reason;
@@ -155,10 +157,9 @@ export function ChatThread({ chatId }: ChatThreadProps) {
 
     return () => {
       cancelled = true;
-      wsRef.current?.close();
-      wsRef.current = null;
+      closeEvents();
     };
-  }, [chatId, ensureWs, openAuth, resetStages, setRunning]);
+  }, [chatId, closeEvents, ensureEvents, openAuth, resetStages, setRunning]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -175,7 +176,7 @@ export function ChatThread({ chatId }: ChatThreadProps) {
     };
     setMessages((prev) => [...prev, optimistic]);
     setOptimisticStart();
-    ensureWs();
+    ensureEvents();
 
     let waitForPipeline = false;
 
@@ -194,12 +195,16 @@ export function ChatThread({ chatId }: ChatThreadProps) {
         result.tool_notice_code === "PIPELINE_RUNNING" ||
         (!result.assistant_message && !result.tool_notice);
       if (result.assistant_message) {
+        // Reply came back in the response (inline pipeline): stream not needed.
+        closeEvents();
         setRunning(false);
       } else if (result.tool_notice && result.tool_notice_code !== "PIPELINE_RUNNING") {
+        closeEvents();
         setError(result.tool_notice);
         setRunning(false);
       }
     } catch (err) {
+      closeEvents();
       setRunning(false);
       try {
         const synced = await listMessages(chatId);

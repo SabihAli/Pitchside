@@ -1,0 +1,9 @@
+# Keep CLI uploads small; Git deploys only see tracked files anyway.
+.env
+futbot-venv/
+.venv/
+**/node_modules/
+**/.next/
+**/__pycache__/
+data/
+test_data/

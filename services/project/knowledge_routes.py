@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from futbot_common.errors import AuthError
 from futbot_common.responses import DataResponse
 from services.project.db import get_db
-from services.project.deps import content_hash, require_user_id
+from services.project.deps import content_hash, require_uploads_enabled, require_user_id
 from services.project.ingestion_trigger import enqueue_ingestion
 from services.project.models import UserKnowledgeFile
 from services.project.schemas import (
@@ -77,7 +77,12 @@ async def list_knowledge_files(
     return DataResponse(data=[_file_response(r) for r in rows])
 
 
-@router.post("/files", response_model=DataResponse[KnowledgeFileResponse], status_code=201)
+@router.post(
+    "/files",
+    response_model=DataResponse[KnowledgeFileResponse],
+    status_code=201,
+    dependencies=[Depends(require_uploads_enabled)],
+)
 async def upload_knowledge_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
